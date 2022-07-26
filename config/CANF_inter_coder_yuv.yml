@@ -1,0 +1,26 @@
+---
+model_architecture: CondANFHyperPriorCoderYUV
+
+model_params:
+    num_filters: 128
+    num_features: 128
+    num_hyperpriors: 128
+    hyper_filters: 192
+    gdn_mode: standard
+    in_channels: 6  # Y:U:V = 4:1:1
+    out_channels: 6  # Y:U:V = 4:1:1
+    kernel_size: 5
+    num_layers: 2
+    init_code: gaussian
+    use_DQ: True
+    share_wei: False
+    use_code: False
+    dec_add: False
+    use_attn: False
+    use_QE: False
+    use_mean: True
+    use_context: False
+    condition: Gaussian
+    quant_mode: RUN
+    output_nought: False
+    cond_coupling: True

@@ -1,0 +1,640 @@
+self.output_nought =  False
+self.cond_coupling =  True
+self.output_nought =  False
+self.cond_coupling =  True
+Pframe(
+  (criterion): MSELoss()
+  (MENet): PWCNet(
+    (conv1a): Sequential(
+      (0): Conv2d(3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv1aa): Sequential(
+      (0): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv1b): Sequential(
+      (0): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2a): Sequential(
+      (0): Conv2d(16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2aa): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2b): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3a): Sequential(
+      (0): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3aa): Sequential(
+      (0): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3b): Sequential(
+      (0): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4a): Sequential(
+      (0): Conv2d(64, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4aa): Sequential(
+      (0): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4b): Sequential(
+      (0): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5a): Sequential(
+      (0): Conv2d(96, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5aa): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5b): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6aa): Sequential(
+      (0): Conv2d(128, 196, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6a): Sequential(
+      (0): Conv2d(196, 196, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6b): Sequential(
+      (0): Conv2d(196, 196, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (corr): Correlation(2, kernel_size=(9, 9), dilation=(1, 1), padding_mode=zeros)
+    (leakyRELU): LeakyReLU(negative_slope=0.1)
+    (conv6_0): Sequential(
+      (0): Conv2d(81, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6_1): Sequential(
+      (0): Conv2d(209, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6_2): Sequential(
+      (0): Conv2d(337, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6_3): Sequential(
+      (0): Conv2d(433, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6_4): Sequential(
+      (0): Conv2d(497, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (predict_flow6): Conv2d(529, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv6): ConvTranspose2d(2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat6): ConvTranspose2d(529, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv5_0): Sequential(
+      (0): Conv2d(213, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5_1): Sequential(
+      (0): Conv2d(341, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5_2): Sequential(
+      (0): Conv2d(469, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5_3): Sequential(
+      (0): Conv2d(565, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5_4): Sequential(
+      (0): Conv2d(629, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (predict_flow5): Conv2d(661, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv5): ConvTranspose2d(2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat5): ConvTranspose2d(661, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv4_0): Sequential(
+      (0): Conv2d(181, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4_1): Sequential(
+      (0): Conv2d(309, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4_2): Sequential(
+      (0): Conv2d(437, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4_3): Sequential(
+      (0): Conv2d(533, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4_4): Sequential(
+      (0): Conv2d(597, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (predict_flow4): Conv2d(629, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv4): ConvTranspose2d(2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat4): ConvTranspose2d(629, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv3_0): Sequential(
+      (0): Conv2d(149, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3_1): Sequential(
+      (0): Conv2d(277, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3_2): Sequential(
+      (0): Conv2d(405, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3_3): Sequential(
+      (0): Conv2d(501, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3_4): Sequential(
+      (0): Conv2d(565, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (predict_flow3): Conv2d(597, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv3): ConvTranspose2d(2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat3): ConvTranspose2d(597, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv2_0): Sequential(
+      (0): Conv2d(117, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2_1): Sequential(
+      (0): Conv2d(245, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2_2): Sequential(
+      (0): Conv2d(373, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2_3): Sequential(
+      (0): Conv2d(469, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2_4): Sequential(
+      (0): Conv2d(533, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (predict_flow2): Conv2d(565, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv2): ConvTranspose2d(2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (dc_conv1): Sequential(
+      (0): Conv2d(565, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (dc_conv2): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (dc_conv3): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (dc_conv4): Sequential(
+      (0): Conv2d(128, 96, kernel_size=(3, 3), stride=(1, 1), padding=(8, 8), dilation=(8, 8))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (dc_conv5): Sequential(
+      (0): Conv2d(96, 64, kernel_size=(3, 3), stride=(1, 1), padding=(16, 16), dilation=(16, 16))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (dc_conv6): Sequential(
+      (0): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (dc_conv7): Conv2d(32, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (MWNet): SDCNet_3M(
+    (conv1): Sequential(
+      (0): Conv2d(13, 32, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv2): Sequential(
+      (0): Conv2d(32, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3): Sequential(
+      (0): Conv2d(64, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv3_1): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv4_1): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv5_1): Sequential(
+      (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6): Sequential(
+      (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (conv6_1): Sequential(
+      (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (deconv5): Sequential(
+      (0): ConvTranspose2d(256, 128, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (deconv4): Sequential(
+      (0): ConvTranspose2d(256, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (deconv3): Sequential(
+      (0): ConvTranspose2d(192, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (deconv2): Sequential(
+      (0): ConvTranspose2d(192, 32, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (deconv1): Sequential(
+      (0): ConvTranspose2d(96, 16, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (deconv0): Sequential(
+      (0): ConvTranspose2d(48, 8, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(negative_slope=0.1, inplace=True)
+    )
+    (final_flow): Conv2d(21, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (Resampler): Resampler(sample_mode=bilinear, padding_mode=border)
+  )
+  (Motion): GoogleHyperPriorCoder(
+    (analysis): GoogleAnalysisTransform(
+      (0): SignalConv2d(2, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (2): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (4): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (6): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    )
+    (synthesis): GoogleSynthesisTransform(
+      (0): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (2): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (4): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (6): SignalConvTranspose2d(128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (entropy_bottleneck): EntropyBottleneck(
+      quant_mode=noise, num_features=128
+      (factorizer): FactorizeModel(
+        (l0): FactorizeCell(1, 3, factor=True)
+        (l1): FactorizeCell(3, 3, factor=True)
+        (l2): FactorizeCell(3, 3, factor=True)
+        (l3): FactorizeCell(3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(quant_mode=noise, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      (0): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(inplace=True)
+      (4): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      (0): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): SignalConvTranspose2d(128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(inplace=True)
+      (4): SignalConvTranspose2d(192, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (CondMotion): CondAugmentedNormalizedFlowHyperPriorCoderPredPrior(
+    (entropy_bottleneck): EntropyBottleneck(
+      quant_mode=RUN, num_features=128
+      (factorizer): FactorizeModel(
+        (l0): FactorizeCell(1, 3, factor=True)
+        (l1): FactorizeCell(3, 3, factor=True)
+        (l2): FactorizeCell(3, 3, factor=True)
+        (l3): FactorizeCell(3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(quant_mode=RUN, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      (0): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(inplace=True)
+      (4): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      (0): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): SignalConvTranspose2d(128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(inplace=True)
+      (4): SignalConvTranspose2d(192, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      clamp=1
+      (0): SignalConv2d(4, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (2): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (4): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (6): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (7): Identity()
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      clamp=1
+      (0): Identity()
+      (1): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): SignalConvTranspose2d(128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      clamp=1
+      (0): SignalConv2d(4, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (2): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (4): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (6): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (7): Identity()
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      clamp=1
+      (0): Identity()
+      (1): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): SignalConvTranspose2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): SignalConvTranspose2d(128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      (conv1): SignalConv2d(2, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        (0): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): SignalConv2d(64, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (pred_prior): GoogleAnalysisTransform(
+      (0): SignalConv2d(3, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (2): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (4): SignalConv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (6): SignalConv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    )
+    (PA): Sequential(
+      (0): Conv2d(512, 640, kernel_size=(1, 1), stride=(1, 1))
+      (1): LeakyReLU(negative_slope=0.01, inplace=True)
+      (2): Conv2d(640, 640, kernel_size=(1, 1), stride=(1, 1))
+      (3): LeakyReLU(negative_slope=0.01, inplace=True)
+      (4): Conv2d(640, 256, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+  (Resampler): Resampler(sample_mode=bilinear, padding_mode=border)
+  (MCNet): Refinement(
+    (l1): Sequential(
+      (0): Conv2d(6, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ResidualBlock(
+        (0): ReLU()
+        (1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(inplace=True)
+        (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (l2): Sequential(
+      (0): AvgPool2d(kernel_size=2, stride=2, padding=0)
+      (1): ResidualBlock(
+        (0): ReLU()
+        (1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(inplace=True)
+        (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (l3): Sequential(
+      (0): AvgPool2d(kernel_size=2, stride=2, padding=0)
+      (1): ResidualBlock(
+        (0): ReLU()
+        (1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(inplace=True)
+        (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (d3): Sequential(
+      (0): ResidualBlock(
+        (0): ReLU()
+        (1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(inplace=True)
+        (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): UpsamplingBilinear2d(scale_factor=2.0, mode=bilinear)
+    )
+    (d2): Sequential(
+      (0): ResidualBlock(
+        (0): ReLU()
+        (1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(inplace=True)
+        (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): UpsamplingBilinear2d(scale_factor=2.0, mode=bilinear)
+    )
+    (d1): Sequential(
+      (0): ResidualBlock(
+        (0): ReLU()
+        (1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(inplace=True)
+        (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (2): ReLU(inplace=True)
+      (3): Conv2d(64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (Residual): CondAugmentedNormalizedFlowHyperPriorCoderPredPrior(
+    (entropy_bottleneck): EntropyBottleneck(
+      quant_mode=RUN, num_features=128
+      (factorizer): FactorizeModel(
+        (l0): FactorizeCell(1, 3, factor=True)
+        (l1): FactorizeCell(3, 3, factor=True)
+        (l2): FactorizeCell(3, 3, factor=True)
+        (l3): FactorizeCell(3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(quant_mode=RUN, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      (0): SignalConv2d(128, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): SignalConv2d(192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(inplace=True)
+      (4): SignalConv2d(192, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      (0): SignalConvTranspose2d(128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(inplace=True)
+      (2): SignalConvTranspose2d(192, 288, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(inplace=True)
+      (4): SignalConvTranspose2d(288, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      clamp=1
+      (0): SignalConv2d(6, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (2): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (4): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (6): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity()
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      clamp=1
+      (0): Identity()
+      (1): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): SignalConvTranspose2d(128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      clamp=1
+      (0): SignalConv2d(6, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (2): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (4): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (6): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity()
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      clamp=1
+      (0): Identity()
+      (1): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): SignalConvTranspose2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): SignalConvTranspose2d(128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      (conv1): SignalConv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        (0): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          (0): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(negative_slope=0.2, inplace=True)
+          (2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): SignalConv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): SignalConv2d(64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (pred_prior): GoogleAnalysisTransform(
+      (0): SignalConv2d(3, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (2): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (4): SignalConv2d(128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(128, gamma_init=0.1, eps=1e-05)
+      (6): SignalConv2d(128, 256, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (PA): Sequential(
+      (0): Conv2d(512, 640, kernel_size=(1, 1), stride=(1, 1))
+      (1): LeakyReLU(negative_slope=0.01, inplace=True)
+      (2): Conv2d(640, 640, kernel_size=(1, 1), stride=(1, 1))
+      (3): LeakyReLU(negative_slope=0.01, inplace=True)
+      (4): Conv2d(640, 256, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+)
+Testing: 0it [00:00, ?it/s]

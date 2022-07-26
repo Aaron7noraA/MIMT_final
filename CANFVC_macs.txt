@@ -1,0 +1,1770 @@
+self.output_nought =  False
+self.cond_coupling =  True
+self.output_nought =  False
+self.cond_coupling =  True
+Testing: 0it [00:00, ?it/s]Warning! No positional inputs found for a module, assuming batch size is 1.
+Pframe(
+  42.782 M, 87.809% Params, 5088.27 GMac, 100.000% MACs, 
+  (criterion): MSELoss(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+  (if_model): AugmentedNormalizedFlowHyperPriorCoder(
+    17.334 M, 35.577% Params, 0.0 GMac, 0.000% MACs, 
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, num_features=192
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): ContextModel(
+      3.076 M, 6.314% Params, 0.0 GMac, 0.000% MACs, 
+      (entropy_model): GaussianMixtureModelConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, use_mean=True, K=3)
+      (mask): MaskedConv2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 320, 640, kernel_size=(5, 5), stride=(1, 1), mode=A)
+      (reparam): Sequential(
+        3.076 M, 6.314% Params, 0.0 GMac, 0.000% MACs, 
+        (0): Conv2d(0.82 M, 1.683% Params, 0.0 GMac, 0.000% MACs, 1280, 640, kernel_size=(1, 1), stride=(1, 1))
+        (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+        (2): Conv2d(0.41 M, 0.842% Params, 0.0 GMac, 0.000% MACs, 640, 640, kernel_size=(1, 1), stride=(1, 1))
+        (3): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+        (4): Conv2d(1.846 M, 3.789% Params, 0.0 GMac, 0.000% MACs, 640, 2880, kernel_size=(1, 1), stride=(1, 1))
+      )
+    )
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      2.397 M, 4.919% Params, 0.0 GMac, 0.000% MACs, 
+      (0): Conv2d(0.553 M, 1.135% Params, 0.0 GMac, 0.000% MACs, 320, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.922 M, 1.892% Params, 0.0 GMac, 0.000% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.922 M, 1.892% Params, 0.0 GMac, 0.000% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      3.964 M, 8.136% Params, 0.0 GMac, 0.000% MACs, 
+      (0): ConvTranspose2d(0.922 M, 1.892% Params, 0.0 GMac, 0.000% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(1.383 M, 2.838% Params, 0.0 GMac, 0.000% MACs, 192, 288, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(1.66 M, 3.406% Params, 0.0 GMac, 0.000% MACs, 288, 640, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      1.854 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Conv2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 3, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 128, 320, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      1.853 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 320, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      1.854 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Conv2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 3, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 128, 320, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      1.853 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 320, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      0.484 M, 0.993% Params, 0.0 GMac, 0.000% MACs, 
+      (conv1): Conv2d(0.002 M, 0.004% Params, 0.0 GMac, 0.000% MACs, 3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        0.443 M, 0.910% Params, 0.0 GMac, 0.000% MACs, 
+        (0): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): Conv2d(0.002 M, 0.004% Params, 0.0 GMac, 0.000% MACs, 64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (MENet): PWCNet(
+    0.0 M, 0.000% Params, 386.08 GMac, 7.588% MACs, 
+    (conv1a): Sequential(
+      0.0 M, 0.000% Params, 0.485 GMac, 0.010% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.468 GMac, 0.009% MACs, 3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv1aa): Sequential(
+      0.0 M, 0.000% Params, 2.44 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv1b): Sequential(
+      0.0 M, 0.000% Params, 2.44 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2a): Sequential(
+      0.0 M, 0.000% Params, 1.22 GMac, 0.024% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.212 GMac, 0.024% MACs, 16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2aa): Sequential(
+      0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2b): Sequential(
+      0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3a): Sequential(
+      0.0 M, 0.000% Params, 1.212 GMac, 0.024% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.207 GMac, 0.024% MACs, 32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3aa): Sequential(
+      0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.411 GMac, 0.047% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3b): Sequential(
+      0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.411 GMac, 0.047% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4a): Sequential(
+      0.0 M, 0.000% Params, 0.906 GMac, 0.018% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.904 GMac, 0.018% MACs, 64, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4aa): Sequential(
+      0.0 M, 0.000% Params, 1.357 GMac, 0.027% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.355 GMac, 0.027% MACs, 96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4b): Sequential(
+      0.0 M, 0.000% Params, 1.357 GMac, 0.027% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.355 GMac, 0.027% MACs, 96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5a): Sequential(
+      0.0 M, 0.000% Params, 0.452 GMac, 0.009% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.452 GMac, 0.009% MACs, 96, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5aa): Sequential(
+      0.0 M, 0.000% Params, 0.603 GMac, 0.012% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.602 GMac, 0.012% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5b): Sequential(
+      0.0 M, 0.000% Params, 0.603 GMac, 0.012% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.602 GMac, 0.012% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6aa): Sequential(
+      0.0 M, 0.000% Params, 0.231 GMac, 0.005% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.231 GMac, 0.005% MACs, 128, 196, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6a): Sequential(
+      0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 196, 196, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6b): Sequential(
+      0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 196, 196, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (corr): Correlation(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 2, kernel_size=(9, 9), dilation=(1, 1), padding_mode=zeros)
+    (leakyRELU): LeakyReLU(0.0 M, 0.000% Params, 0.014 GMac, 0.000% MACs, negative_slope=0.1)
+    (conv6_0): Sequential(
+      0.0 M, 0.000% Params, 0.048 GMac, 0.001% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.048 GMac, 0.001% MACs, 81, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_1): Sequential(
+      0.0 M, 0.000% Params, 0.123 GMac, 0.002% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.123 GMac, 0.002% MACs, 209, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_2): Sequential(
+      0.0 M, 0.000% Params, 0.149 GMac, 0.003% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.149 GMac, 0.003% MACs, 337, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_3): Sequential(
+      0.0 M, 0.000% Params, 0.127 GMac, 0.003% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.127 GMac, 0.003% MACs, 433, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_4): Sequential(
+      0.0 M, 0.000% Params, 0.073 GMac, 0.001% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.073 GMac, 0.001% MACs, 497, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow6): Conv2d(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, 529, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv6): ConvTranspose2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat6): ConvTranspose2d(0.0 M, 0.000% Params, 0.035 GMac, 0.001% MACs, 529, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv5_0): Sequential(
+      0.0 M, 0.000% Params, 0.501 GMac, 0.010% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.501 GMac, 0.010% MACs, 213, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_1): Sequential(
+      0.0 M, 0.000% Params, 0.802 GMac, 0.016% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.802 GMac, 0.016% MACs, 341, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_2): Sequential(
+      0.0 M, 0.000% Params, 0.827 GMac, 0.016% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.827 GMac, 0.016% MACs, 469, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_3): Sequential(
+      0.0 M, 0.000% Params, 0.664 GMac, 0.013% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.664 GMac, 0.013% MACs, 565, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_4): Sequential(
+      0.0 M, 0.000% Params, 0.37 GMac, 0.007% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.37 GMac, 0.007% MACs, 629, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow5): Conv2d(0.0 M, 0.000% Params, 0.024 GMac, 0.000% MACs, 661, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv5): ConvTranspose2d(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat5): ConvTranspose2d(0.0 M, 0.000% Params, 0.173 GMac, 0.003% MACs, 661, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv4_0): Sequential(
+      0.0 M, 0.000% Params, 1.704 GMac, 0.033% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.703 GMac, 0.033% MACs, 181, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_1): Sequential(
+      0.0 M, 0.000% Params, 2.907 GMac, 0.057% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.906 GMac, 0.057% MACs, 309, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_2): Sequential(
+      0.0 M, 0.000% Params, 3.083 GMac, 0.061% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 3.082 GMac, 0.061% MACs, 437, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_3): Sequential(
+      0.0 M, 0.000% Params, 2.506 GMac, 0.049% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.506 GMac, 0.049% MACs, 533, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_4): Sequential(
+      0.0 M, 0.000% Params, 1.404 GMac, 0.028% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.403 GMac, 0.028% MACs, 597, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow4): Conv2d(0.0 M, 0.000% Params, 0.092 GMac, 0.002% MACs, 629, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv4): ConvTranspose2d(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat4): ConvTranspose2d(0.0 M, 0.000% Params, 0.657 GMac, 0.013% MACs, 629, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv3_0): Sequential(
+      0.0 M, 0.000% Params, 5.611 GMac, 0.110% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 5.607 GMac, 0.110% MACs, 149, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_1): Sequential(
+      0.0 M, 0.000% Params, 10.424 GMac, 0.205% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 10.42 GMac, 0.205% MACs, 277, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_2): Sequential(
+      0.0 M, 0.000% Params, 11.428 GMac, 0.225% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 11.425 GMac, 0.225% MACs, 405, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.003 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_3): Sequential(
+      0.0 M, 0.000% Params, 9.423 GMac, 0.185% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 9.421 GMac, 0.185% MACs, 501, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_4): Sequential(
+      0.0 M, 0.000% Params, 5.313 GMac, 0.104% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 5.312 GMac, 0.104% MACs, 565, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow3): Conv2d(0.0 M, 0.000% Params, 0.351 GMac, 0.007% MACs, 597, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv3): ConvTranspose2d(0.0 M, 0.000% Params, 0.009 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat3): ConvTranspose2d(0.0 M, 0.000% Params, 2.494 GMac, 0.049% MACs, 597, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv2_0): Sequential(
+      0.0 M, 0.000% Params, 17.631 GMac, 0.346% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 17.614 GMac, 0.346% MACs, 117, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_1): Sequential(
+      0.0 M, 0.000% Params, 36.883 GMac, 0.725% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 36.866 GMac, 0.725% MACs, 245, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_2): Sequential(
+      0.0 M, 0.000% Params, 42.101 GMac, 0.827% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 42.088 GMac, 0.827% MACs, 373, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.013 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_3): Sequential(
+      0.0 M, 0.000% Params, 35.287 GMac, 0.693% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 35.278 GMac, 0.693% MACs, 469, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_4): Sequential(
+      0.0 M, 0.000% Params, 20.05 GMac, 0.394% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 20.046 GMac, 0.394% MACs, 533, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow2): Conv2d(0.0 M, 0.000% Params, 1.328 GMac, 0.026% MACs, 565, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv2): ConvTranspose2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (dc_conv1): Sequential(
+      0.0 M, 0.000% Params, 85.012 GMac, 1.671% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 84.996 GMac, 1.670% MACs, 565, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv2): Sequential(
+      0.0 M, 0.000% Params, 19.285 GMac, 0.379% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv3): Sequential(
+      0.0 M, 0.000% Params, 19.285 GMac, 0.379% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv4): Sequential(
+      0.0 M, 0.000% Params, 14.464 GMac, 0.284% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 14.451 GMac, 0.284% MACs, 128, 96, kernel_size=(3, 3), stride=(1, 1), padding=(8, 8), dilation=(8, 8))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.013 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv5): Sequential(
+      0.0 M, 0.000% Params, 7.236 GMac, 0.142% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 7.228 GMac, 0.142% MACs, 96, 64, kernel_size=(3, 3), stride=(1, 1), padding=(16, 16), dilation=(16, 16))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv6): Sequential(
+      0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.411 GMac, 0.047% MACs, 64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv7): Conv2d(0.0 M, 0.000% Params, 0.075 GMac, 0.001% MACs, 32, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (MWNet): SDCNet_3M(
+    3.013 M, 6.183% Params, 81.347 GMac, 1.599% MACs, 
+    (conv1): Sequential(
+      0.02 M, 0.042% Params, 10.679 GMac, 0.210% MACs, 
+      (0): Conv2d(0.02 M, 0.042% Params, 10.662 GMac, 0.210% MACs, 13, 32, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2): Sequential(
+      0.051 M, 0.105% Params, 6.701 GMac, 0.132% MACs, 
+      (0): Conv2d(0.051 M, 0.105% Params, 6.693 GMac, 0.132% MACs, 32, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3): Sequential(
+      0.205 M, 0.421% Params, 6.693 GMac, 0.132% MACs, 
+      (0): Conv2d(0.205 M, 0.421% Params, 6.689 GMac, 0.131% MACs, 64, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_1): Sequential(
+      0.148 M, 0.303% Params, 4.821 GMac, 0.095% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 4.817 GMac, 0.095% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4): Sequential(
+      0.148 M, 0.303% Params, 1.205 GMac, 0.024% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_1): Sequential(
+      0.148 M, 0.303% Params, 1.205 GMac, 0.024% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5): Sequential(
+      0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_1): Sequential(
+      0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6): Sequential(
+      0.295 M, 0.606% Params, 0.151 GMac, 0.003% MACs, 
+      (0): Conv2d(0.295 M, 0.606% Params, 0.151 GMac, 0.003% MACs, 128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_1): Sequential(
+      0.59 M, 1.211% Params, 0.301 GMac, 0.006% MACs, 
+      (0): Conv2d(0.59 M, 1.211% Params, 0.301 GMac, 0.006% MACs, 256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv5): Sequential(
+      0.524 M, 1.076% Params, 1.07 GMac, 0.021% MACs, 
+      (0): ConvTranspose2d(0.524 M, 1.076% Params, 1.07 GMac, 0.021% MACs, 256, 128, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv4): Sequential(
+      0.262 M, 0.538% Params, 2.14 GMac, 0.042% MACs, 
+      (0): ConvTranspose2d(0.262 M, 0.538% Params, 2.14 GMac, 0.042% MACs, 256, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv3): Sequential(
+      0.197 M, 0.404% Params, 6.421 GMac, 0.126% MACs, 
+      (0): ConvTranspose2d(0.197 M, 0.404% Params, 6.419 GMac, 0.126% MACs, 192, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv2): Sequential(
+      0.098 M, 0.202% Params, 12.843 GMac, 0.252% MACs, 
+      (0): ConvTranspose2d(0.098 M, 0.202% Params, 12.839 GMac, 0.252% MACs, 192, 32, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv1): Sequential(
+      0.025 M, 0.050% Params, 12.851 GMac, 0.253% MACs, 
+      (0): ConvTranspose2d(0.025 M, 0.050% Params, 12.843 GMac, 0.252% MACs, 96, 16, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv0): Sequential(
+      0.006 M, 0.013% Params, 12.868 GMac, 0.253% MACs, 
+      (0): ConvTranspose2d(0.006 M, 0.013% Params, 12.851 GMac, 0.253% MACs, 48, 8, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (final_flow): Conv2d(0.0 M, 0.001% Params, 0.794 GMac, 0.016% MACs, 21, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (Resampler): Resampler(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, sample_mode=bilinear, padding_mode=border)
+  )
+  (Motion): GoogleHyperPriorCoder(
+    3.324 M, 6.823% Params, 0.0 GMac, 0.000% MACs, 
+    (analysis): GoogleAnalysisTransform(
+      0.445 M, 0.914% Params, 0.0 GMac, 0.000% MACs, 
+      (0): Conv2d(0.002 M, 0.005% Params, 0.0 GMac, 0.000% MACs, 2, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    )
+    (synthesis): GoogleSynthesisTransform(
+      0.445 M, 0.913% Params, 0.0 GMac, 0.000% MACs, 
+      (0): ConvTranspose2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (2): ConvTranspose2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (4): ConvTranspose2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (6): ConvTranspose2d(0.002 M, 0.005% Params, 0.0 GMac, 0.000% MACs, 128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=noise, num_features=128
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=noise, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      0.967 M, 1.985% Params, 0.0 GMac, 0.000% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      1.467 M, 3.011% Params, 0.0 GMac, 0.000% MACs, 
+      (0): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(0.615 M, 1.261% Params, 0.0 GMac, 0.000% MACs, 128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(0.443 M, 0.908% Params, 0.0 GMac, 0.000% MACs, 192, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (CondMotion): CondAugmentedNormalizedFlowHyperPriorCoderPredPrior(
+    6.198 M, 12.721% Params, 1563.243 GMac, 30.722% MACs, 
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, num_features=128
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      0.967 M, 1.985% Params, 2.25 GMac, 0.044% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.836 GMac, 0.016% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.209 GMac, 0.004% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      1.467 M, 3.011% Params, 9.465 GMac, 0.186% MACs, 
+      (0): ConvTranspose2d(0.41 M, 0.841% Params, 0.836 GMac, 0.016% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(0.615 M, 1.261% Params, 5.015 GMac, 0.099% MACs, 128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(0.443 M, 0.908% Params, 3.612 GMac, 0.071% MACs, 192, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      0.447 M, 0.918% Params, 27.763 GMac, 0.546% MACs, clamp=1
+      (0): Conv2d(0.005 M, 0.010% Params, 2.473 GMac, 0.049% MACs, 4, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 4.817 GMac, 0.095% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      0.445 M, 0.913% Params, 211.954 GMac, 4.166% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.148 M, 0.303% Params, 9.634 GMac, 0.189% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.148 M, 0.303% Params, 38.537 GMac, 0.757% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.148 M, 0.303% Params, 154.149 GMac, 3.029% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.002 M, 0.005% Params, 9.634 GMac, 0.189% MACs, 128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      0.447 M, 0.918% Params, 55.527 GMac, 1.091% MACs, clamp=1
+      (0): Conv2d(0.005 M, 0.010% Params, 4.947 GMac, 0.097% MACs, 4, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 38.537 GMac, 0.757% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 9.634 GMac, 0.189% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.148 M, 0.303% Params, 2.409 GMac, 0.047% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      0.445 M, 0.913% Params, 211.954 GMac, 4.166% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.148 M, 0.303% Params, 9.634 GMac, 0.189% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.148 M, 0.303% Params, 38.537 GMac, 0.757% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.148 M, 0.303% Params, 154.149 GMac, 3.029% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.002 M, 0.005% Params, 9.634 GMac, 0.189% MACs, 128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      0.482 M, 0.990% Params, 1008.587 GMac, 19.822% MACs, 
+      (conv1): Conv2d(0.001 M, 0.002% Params, 2.54 GMac, 0.050% MACs, 2, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        0.443 M, 0.910% Params, 926.496 GMac, 18.208% MACs, 
+        (0): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): Conv2d(0.001 M, 0.002% Params, 2.411 GMac, 0.047% MACs, 64, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (pred_prior): GoogleAnalysisTransform(
+      0.594 M, 1.219% Params, 28.366 GMac, 0.557% MACs, 
+      (0): Conv2d(0.004 M, 0.007% Params, 1.872 GMac, 0.037% MACs, 3, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 4.817 GMac, 0.095% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.295 M, 0.606% Params, 2.409 GMac, 0.047% MACs, 128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    )
+    (PA): Sequential(
+      0.903 M, 1.853% Params, 7.376 GMac, 0.145% MACs, 
+      (0): Conv2d(0.328 M, 0.674% Params, 2.679 GMac, 0.053% MACs, 512, 640, kernel_size=(1, 1), stride=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (2): Conv2d(0.41 M, 0.842% Params, 3.348 GMac, 0.066% MACs, 640, 640, kernel_size=(1, 1), stride=(1, 1))
+      (3): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (4): Conv2d(0.164 M, 0.337% Params, 1.339 GMac, 0.026% MACs, 640, 256, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+  (Resampler): Resampler(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, sample_mode=bilinear, padding_mode=border)
+  (MCNet): Refinement(
+    0.485 M, 0.996% Params, 494.104 GMac, 9.711% MACs, 
+    (l1): Sequential(
+      0.077 M, 0.159% Params, 161.903 GMac, 3.182% MACs, 
+      (0): Conv2d(0.004 M, 0.007% Params, 7.353 GMac, 0.145% MACs, 6, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ResidualBlock(
+        0.074 M, 0.152% Params, 154.55 GMac, 3.037% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (l2): Sequential(
+      0.074 M, 0.152% Params, 38.771 GMac, 0.762% MACs, 
+      (0): AvgPool2d(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, kernel_size=2, stride=2, padding=0)
+      (1): ResidualBlock(
+        0.074 M, 0.152% Params, 38.637 GMac, 0.759% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (l3): Sequential(
+      0.074 M, 0.152% Params, 9.693 GMac, 0.190% MACs, 
+      (0): AvgPool2d(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, kernel_size=2, stride=2, padding=0)
+      (1): ResidualBlock(
+        0.074 M, 0.152% Params, 9.659 GMac, 0.190% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (d3): Sequential(
+      0.074 M, 0.152% Params, 9.659 GMac, 0.190% MACs, 
+      (0): ResidualBlock(
+        0.074 M, 0.152% Params, 9.659 GMac, 0.190% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): UpsamplingBilinear2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, scale_factor=2.0, mode=bilinear)
+    )
+    (d2): Sequential(
+      0.074 M, 0.152% Params, 38.637 GMac, 0.759% MACs, 
+      (0): ResidualBlock(
+        0.074 M, 0.152% Params, 38.637 GMac, 0.759% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): UpsamplingBilinear2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, scale_factor=2.0, mode=bilinear)
+    )
+    (d1): Sequential(
+      0.113 M, 0.231% Params, 235.44 GMac, 4.627% MACs, 
+      (0): ResidualBlock(
+        0.074 M, 0.152% Params, 154.55 GMac, 3.037% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (2): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, inplace=True)
+      (3): Conv2d(0.002 M, 0.004% Params, 3.616 GMac, 0.071% MACs, 64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (Residual): CondAugmentedNormalizedFlowHyperPriorCoderPredPrior(
+    12.428 M, 25.509% Params, 2563.497 GMac, 50.381% MACs, 
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, num_features=128
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      1.758 M, 3.608% Params, 4.002 GMac, 0.079% MACs, 
+      (0): Conv2d(0.221 M, 0.454% Params, 1.806 GMac, 0.036% MACs, 128, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.922 M, 1.892% Params, 1.88 GMac, 0.037% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.615 M, 1.261% Params, 0.313 GMac, 0.006% MACs, 192, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      2.661 M, 5.462% Params, 17.956 GMac, 0.353% MACs, 
+      (0): ConvTranspose2d(0.615 M, 1.261% Params, 1.254 GMac, 0.025% MACs, 128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(1.383 M, 2.838% Params, 11.283 GMac, 0.222% MACs, 192, 288, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(0.664 M, 1.362% Params, 5.417 GMac, 0.106% MACs, 288, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      1.249 M, 2.563% Params, 80.305 GMac, 1.578% MACs, clamp=1
+      (0): Conv2d(0.019 M, 0.040% Params, 10.094 GMac, 0.198% MACs, 6, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 53.494 GMac, 1.051% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 13.374 GMac, 0.263% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.41 M, 0.841% Params, 3.343 GMac, 0.066% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      1.239 M, 2.543% Params, 601.808 GMac, 11.827% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.41 M, 0.841% Params, 26.747 GMac, 0.526% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 106.988 GMac, 2.103% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 427.953 GMac, 8.411% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 40.121 GMac, 0.788% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      1.249 M, 2.563% Params, 160.61 GMac, 3.156% MACs, clamp=1
+      (0): Conv2d(0.019 M, 0.040% Params, 20.188 GMac, 0.397% MACs, 6, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 106.988 GMac, 2.103% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 26.747 GMac, 0.526% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.41 M, 0.841% Params, 6.687 GMac, 0.131% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      1.239 M, 2.543% Params, 601.808 GMac, 11.827% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.41 M, 0.841% Params, 26.747 GMac, 0.526% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 106.988 GMac, 2.103% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 427.953 GMac, 8.411% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 40.121 GMac, 0.788% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      0.484 M, 0.993% Params, 1010.996 GMac, 19.869% MACs, 
+      (conv1): Conv2d(0.002 M, 0.004% Params, 3.743 GMac, 0.074% MACs, 3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        0.443 M, 0.910% Params, 926.496 GMac, 18.208% MACs, 
+        (0): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): Conv2d(0.002 M, 0.004% Params, 3.616 GMac, 0.071% MACs, 64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (pred_prior): GoogleAnalysisTransform(
+      1.649 M, 3.384% Params, 78.635 GMac, 1.545% MACs, 
+      (0): Conv2d(0.01 M, 0.020% Params, 5.08 GMac, 0.100% MACs, 3, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 53.494 GMac, 1.051% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 13.374 GMac, 0.263% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.819 M, 1.682% Params, 6.687 GMac, 0.131% MACs, 128, 256, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (PA): Sequential(
+      0.903 M, 1.853% Params, 7.376 GMac, 0.145% MACs, 
+      (0): Conv2d(0.328 M, 0.674% Params, 2.679 GMac, 0.053% MACs, 512, 640, kernel_size=(1, 1), stride=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (2): Conv2d(0.41 M, 0.842% Params, 3.348 GMac, 0.066% MACs, 640, 640, kernel_size=(1, 1), stride=(1, 1))
+      (3): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (4): Conv2d(0.164 M, 0.337% Params, 1.339 GMac, 0.026% MACs, 640, 256, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+)
+5088.27 GMac
+Testing:   0%|          | 1/216 [00:35<2:08:33, 35.88s/it]Warning! No positional inputs found for a module, assuming batch size is 1.
+Pframe(
+  42.782 M, 87.809% Params, 5088.27 GMac, 100.000% MACs, 
+  (criterion): MSELoss(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+  (if_model): AugmentedNormalizedFlowHyperPriorCoder(
+    17.334 M, 35.577% Params, 0.0 GMac, 0.000% MACs, 
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, num_features=192
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): ContextModel(
+      3.076 M, 6.314% Params, 0.0 GMac, 0.000% MACs, 
+      (entropy_model): GaussianMixtureModelConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, use_mean=True, K=3)
+      (mask): MaskedConv2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 320, 640, kernel_size=(5, 5), stride=(1, 1), mode=A)
+      (reparam): Sequential(
+        3.076 M, 6.314% Params, 0.0 GMac, 0.000% MACs, 
+        (0): Conv2d(0.82 M, 1.683% Params, 0.0 GMac, 0.000% MACs, 1280, 640, kernel_size=(1, 1), stride=(1, 1))
+        (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+        (2): Conv2d(0.41 M, 0.842% Params, 0.0 GMac, 0.000% MACs, 640, 640, kernel_size=(1, 1), stride=(1, 1))
+        (3): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+        (4): Conv2d(1.846 M, 3.789% Params, 0.0 GMac, 0.000% MACs, 640, 2880, kernel_size=(1, 1), stride=(1, 1))
+      )
+    )
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      2.397 M, 4.919% Params, 0.0 GMac, 0.000% MACs, 
+      (0): Conv2d(0.553 M, 1.135% Params, 0.0 GMac, 0.000% MACs, 320, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.922 M, 1.892% Params, 0.0 GMac, 0.000% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.922 M, 1.892% Params, 0.0 GMac, 0.000% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      3.964 M, 8.136% Params, 0.0 GMac, 0.000% MACs, 
+      (0): ConvTranspose2d(0.922 M, 1.892% Params, 0.0 GMac, 0.000% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(1.383 M, 2.838% Params, 0.0 GMac, 0.000% MACs, 192, 288, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(1.66 M, 3.406% Params, 0.0 GMac, 0.000% MACs, 288, 640, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      1.854 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Conv2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 3, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 128, 320, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      1.853 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 320, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      1.854 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Conv2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 3, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 128, 320, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      1.853 M, 3.804% Params, 0.0 GMac, 0.000% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(1.024 M, 2.102% Params, 0.0 GMac, 0.000% MACs, 320, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 0.0 GMac, 0.000% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      0.484 M, 0.993% Params, 0.0 GMac, 0.000% MACs, 
+      (conv1): Conv2d(0.002 M, 0.004% Params, 0.0 GMac, 0.000% MACs, 3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        0.443 M, 0.910% Params, 0.0 GMac, 0.000% MACs, 
+        (0): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          0.074 M, 0.152% Params, 0.0 GMac, 0.000% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): Conv2d(0.037 M, 0.076% Params, 0.0 GMac, 0.000% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): Conv2d(0.002 M, 0.004% Params, 0.0 GMac, 0.000% MACs, 64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (MENet): PWCNet(
+    0.0 M, 0.000% Params, 386.08 GMac, 7.588% MACs, 
+    (conv1a): Sequential(
+      0.0 M, 0.000% Params, 0.485 GMac, 0.010% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.468 GMac, 0.009% MACs, 3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv1aa): Sequential(
+      0.0 M, 0.000% Params, 2.44 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv1b): Sequential(
+      0.0 M, 0.000% Params, 2.44 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2a): Sequential(
+      0.0 M, 0.000% Params, 1.22 GMac, 0.024% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.212 GMac, 0.024% MACs, 16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2aa): Sequential(
+      0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2b): Sequential(
+      0.0 M, 0.000% Params, 2.423 GMac, 0.048% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3a): Sequential(
+      0.0 M, 0.000% Params, 1.212 GMac, 0.024% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.207 GMac, 0.024% MACs, 32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3aa): Sequential(
+      0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.411 GMac, 0.047% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3b): Sequential(
+      0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.411 GMac, 0.047% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4a): Sequential(
+      0.0 M, 0.000% Params, 0.906 GMac, 0.018% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.904 GMac, 0.018% MACs, 64, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4aa): Sequential(
+      0.0 M, 0.000% Params, 1.357 GMac, 0.027% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.355 GMac, 0.027% MACs, 96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4b): Sequential(
+      0.0 M, 0.000% Params, 1.357 GMac, 0.027% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.355 GMac, 0.027% MACs, 96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5a): Sequential(
+      0.0 M, 0.000% Params, 0.452 GMac, 0.009% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.452 GMac, 0.009% MACs, 96, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5aa): Sequential(
+      0.0 M, 0.000% Params, 0.603 GMac, 0.012% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.602 GMac, 0.012% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5b): Sequential(
+      0.0 M, 0.000% Params, 0.603 GMac, 0.012% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.602 GMac, 0.012% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6aa): Sequential(
+      0.0 M, 0.000% Params, 0.231 GMac, 0.005% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.231 GMac, 0.005% MACs, 128, 196, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6a): Sequential(
+      0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 196, 196, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6b): Sequential(
+      0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.353 GMac, 0.007% MACs, 196, 196, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (corr): Correlation(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 2, kernel_size=(9, 9), dilation=(1, 1), padding_mode=zeros)
+    (leakyRELU): LeakyReLU(0.0 M, 0.000% Params, 0.014 GMac, 0.000% MACs, negative_slope=0.1)
+    (conv6_0): Sequential(
+      0.0 M, 0.000% Params, 0.048 GMac, 0.001% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.048 GMac, 0.001% MACs, 81, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_1): Sequential(
+      0.0 M, 0.000% Params, 0.123 GMac, 0.002% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.123 GMac, 0.002% MACs, 209, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_2): Sequential(
+      0.0 M, 0.000% Params, 0.149 GMac, 0.003% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.149 GMac, 0.003% MACs, 337, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_3): Sequential(
+      0.0 M, 0.000% Params, 0.127 GMac, 0.003% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.127 GMac, 0.003% MACs, 433, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_4): Sequential(
+      0.0 M, 0.000% Params, 0.073 GMac, 0.001% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.073 GMac, 0.001% MACs, 497, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow6): Conv2d(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, 529, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv6): ConvTranspose2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat6): ConvTranspose2d(0.0 M, 0.000% Params, 0.035 GMac, 0.001% MACs, 529, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv5_0): Sequential(
+      0.0 M, 0.000% Params, 0.501 GMac, 0.010% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.501 GMac, 0.010% MACs, 213, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_1): Sequential(
+      0.0 M, 0.000% Params, 0.802 GMac, 0.016% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.802 GMac, 0.016% MACs, 341, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_2): Sequential(
+      0.0 M, 0.000% Params, 0.827 GMac, 0.016% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.827 GMac, 0.016% MACs, 469, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_3): Sequential(
+      0.0 M, 0.000% Params, 0.664 GMac, 0.013% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.664 GMac, 0.013% MACs, 565, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_4): Sequential(
+      0.0 M, 0.000% Params, 0.37 GMac, 0.007% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 0.37 GMac, 0.007% MACs, 629, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow5): Conv2d(0.0 M, 0.000% Params, 0.024 GMac, 0.000% MACs, 661, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv5): ConvTranspose2d(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat5): ConvTranspose2d(0.0 M, 0.000% Params, 0.173 GMac, 0.003% MACs, 661, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv4_0): Sequential(
+      0.0 M, 0.000% Params, 1.704 GMac, 0.033% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.703 GMac, 0.033% MACs, 181, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_1): Sequential(
+      0.0 M, 0.000% Params, 2.907 GMac, 0.057% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.906 GMac, 0.057% MACs, 309, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_2): Sequential(
+      0.0 M, 0.000% Params, 3.083 GMac, 0.061% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 3.082 GMac, 0.061% MACs, 437, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_3): Sequential(
+      0.0 M, 0.000% Params, 2.506 GMac, 0.049% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.506 GMac, 0.049% MACs, 533, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_4): Sequential(
+      0.0 M, 0.000% Params, 1.404 GMac, 0.028% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 1.403 GMac, 0.028% MACs, 597, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow4): Conv2d(0.0 M, 0.000% Params, 0.092 GMac, 0.002% MACs, 629, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv4): ConvTranspose2d(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat4): ConvTranspose2d(0.0 M, 0.000% Params, 0.657 GMac, 0.013% MACs, 629, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv3_0): Sequential(
+      0.0 M, 0.000% Params, 5.611 GMac, 0.110% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 5.607 GMac, 0.110% MACs, 149, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_1): Sequential(
+      0.0 M, 0.000% Params, 10.424 GMac, 0.205% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 10.42 GMac, 0.205% MACs, 277, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_2): Sequential(
+      0.0 M, 0.000% Params, 11.428 GMac, 0.225% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 11.425 GMac, 0.225% MACs, 405, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.003 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_3): Sequential(
+      0.0 M, 0.000% Params, 9.423 GMac, 0.185% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 9.421 GMac, 0.185% MACs, 501, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_4): Sequential(
+      0.0 M, 0.000% Params, 5.313 GMac, 0.104% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 5.312 GMac, 0.104% MACs, 565, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow3): Conv2d(0.0 M, 0.000% Params, 0.351 GMac, 0.007% MACs, 597, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv3): ConvTranspose2d(0.0 M, 0.000% Params, 0.009 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (upfeat3): ConvTranspose2d(0.0 M, 0.000% Params, 2.494 GMac, 0.049% MACs, 597, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (conv2_0): Sequential(
+      0.0 M, 0.000% Params, 17.631 GMac, 0.346% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 17.614 GMac, 0.346% MACs, 117, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_1): Sequential(
+      0.0 M, 0.000% Params, 36.883 GMac, 0.725% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 36.866 GMac, 0.725% MACs, 245, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_2): Sequential(
+      0.0 M, 0.000% Params, 42.101 GMac, 0.827% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 42.088 GMac, 0.827% MACs, 373, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.013 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_3): Sequential(
+      0.0 M, 0.000% Params, 35.287 GMac, 0.693% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 35.278 GMac, 0.693% MACs, 469, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2_4): Sequential(
+      0.0 M, 0.000% Params, 20.05 GMac, 0.394% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 20.046 GMac, 0.394% MACs, 533, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (predict_flow2): Conv2d(0.0 M, 0.000% Params, 1.328 GMac, 0.026% MACs, 565, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (deconv2): ConvTranspose2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 2, 2, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (dc_conv1): Sequential(
+      0.0 M, 0.000% Params, 85.012 GMac, 1.671% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 84.996 GMac, 1.670% MACs, 565, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv2): Sequential(
+      0.0 M, 0.000% Params, 19.285 GMac, 0.379% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv3): Sequential(
+      0.0 M, 0.000% Params, 19.285 GMac, 0.379% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv4): Sequential(
+      0.0 M, 0.000% Params, 14.464 GMac, 0.284% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 14.451 GMac, 0.284% MACs, 128, 96, kernel_size=(3, 3), stride=(1, 1), padding=(8, 8), dilation=(8, 8))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.013 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv5): Sequential(
+      0.0 M, 0.000% Params, 7.236 GMac, 0.142% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 7.228 GMac, 0.142% MACs, 96, 64, kernel_size=(3, 3), stride=(1, 1), padding=(16, 16), dilation=(16, 16))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv6): Sequential(
+      0.0 M, 0.000% Params, 2.415 GMac, 0.047% MACs, 
+      (0): Conv2d(0.0 M, 0.000% Params, 2.411 GMac, 0.047% MACs, 64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (dc_conv7): Conv2d(0.0 M, 0.000% Params, 0.075 GMac, 0.001% MACs, 32, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (MWNet): SDCNet_3M(
+    3.013 M, 6.183% Params, 81.347 GMac, 1.599% MACs, 
+    (conv1): Sequential(
+      0.02 M, 0.042% Params, 10.679 GMac, 0.210% MACs, 
+      (0): Conv2d(0.02 M, 0.042% Params, 10.662 GMac, 0.210% MACs, 13, 32, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv2): Sequential(
+      0.051 M, 0.105% Params, 6.701 GMac, 0.132% MACs, 
+      (0): Conv2d(0.051 M, 0.105% Params, 6.693 GMac, 0.132% MACs, 32, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3): Sequential(
+      0.205 M, 0.421% Params, 6.693 GMac, 0.132% MACs, 
+      (0): Conv2d(0.205 M, 0.421% Params, 6.689 GMac, 0.131% MACs, 64, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv3_1): Sequential(
+      0.148 M, 0.303% Params, 4.821 GMac, 0.095% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 4.817 GMac, 0.095% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4): Sequential(
+      0.148 M, 0.303% Params, 1.205 GMac, 0.024% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv4_1): Sequential(
+      0.148 M, 0.303% Params, 1.205 GMac, 0.024% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5): Sequential(
+      0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv5_1): Sequential(
+      0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 0.301 GMac, 0.006% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6): Sequential(
+      0.295 M, 0.606% Params, 0.151 GMac, 0.003% MACs, 
+      (0): Conv2d(0.295 M, 0.606% Params, 0.151 GMac, 0.003% MACs, 128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (conv6_1): Sequential(
+      0.59 M, 1.211% Params, 0.301 GMac, 0.006% MACs, 
+      (0): Conv2d(0.59 M, 1.211% Params, 0.301 GMac, 0.006% MACs, 256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv5): Sequential(
+      0.524 M, 1.076% Params, 1.07 GMac, 0.021% MACs, 
+      (0): ConvTranspose2d(0.524 M, 1.076% Params, 1.07 GMac, 0.021% MACs, 256, 128, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv4): Sequential(
+      0.262 M, 0.538% Params, 2.14 GMac, 0.042% MACs, 
+      (0): ConvTranspose2d(0.262 M, 0.538% Params, 2.14 GMac, 0.042% MACs, 256, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv3): Sequential(
+      0.197 M, 0.404% Params, 6.421 GMac, 0.126% MACs, 
+      (0): ConvTranspose2d(0.197 M, 0.404% Params, 6.419 GMac, 0.126% MACs, 192, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv2): Sequential(
+      0.098 M, 0.202% Params, 12.843 GMac, 0.252% MACs, 
+      (0): ConvTranspose2d(0.098 M, 0.202% Params, 12.839 GMac, 0.252% MACs, 192, 32, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.004 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv1): Sequential(
+      0.025 M, 0.050% Params, 12.851 GMac, 0.253% MACs, 
+      (0): ConvTranspose2d(0.025 M, 0.050% Params, 12.843 GMac, 0.252% MACs, 96, 16, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (deconv0): Sequential(
+      0.006 M, 0.013% Params, 12.868 GMac, 0.253% MACs, 
+      (0): ConvTranspose2d(0.006 M, 0.013% Params, 12.851 GMac, 0.253% MACs, 48, 8, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.017 GMac, 0.000% MACs, negative_slope=0.1, inplace=True)
+    )
+    (final_flow): Conv2d(0.0 M, 0.001% Params, 0.794 GMac, 0.016% MACs, 21, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (Resampler): Resampler(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, sample_mode=bilinear, padding_mode=border)
+  )
+  (Motion): GoogleHyperPriorCoder(
+    3.324 M, 6.823% Params, 0.0 GMac, 0.000% MACs, 
+    (analysis): GoogleAnalysisTransform(
+      0.445 M, 0.914% Params, 0.0 GMac, 0.000% MACs, 
+      (0): Conv2d(0.002 M, 0.005% Params, 0.0 GMac, 0.000% MACs, 2, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    )
+    (synthesis): GoogleSynthesisTransform(
+      0.445 M, 0.913% Params, 0.0 GMac, 0.000% MACs, 
+      (0): ConvTranspose2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (2): ConvTranspose2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (4): ConvTranspose2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (6): ConvTranspose2d(0.002 M, 0.005% Params, 0.0 GMac, 0.000% MACs, 128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=noise, num_features=128
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=noise, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      0.967 M, 1.985% Params, 0.0 GMac, 0.000% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      1.467 M, 3.011% Params, 0.0 GMac, 0.000% MACs, 
+      (0): ConvTranspose2d(0.41 M, 0.841% Params, 0.0 GMac, 0.000% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(0.615 M, 1.261% Params, 0.0 GMac, 0.000% MACs, 128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(0.443 M, 0.908% Params, 0.0 GMac, 0.000% MACs, 192, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (CondMotion): CondAugmentedNormalizedFlowHyperPriorCoderPredPrior(
+    6.198 M, 12.721% Params, 1563.243 GMac, 30.722% MACs, 
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, num_features=128
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      0.967 M, 1.985% Params, 2.25 GMac, 0.044% MACs, 
+      (0): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.001 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.41 M, 0.841% Params, 0.836 GMac, 0.016% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.41 M, 0.841% Params, 0.209 GMac, 0.004% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      1.467 M, 3.011% Params, 9.465 GMac, 0.186% MACs, 
+      (0): ConvTranspose2d(0.41 M, 0.841% Params, 0.836 GMac, 0.016% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(0.615 M, 1.261% Params, 5.015 GMac, 0.099% MACs, 128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(0.443 M, 0.908% Params, 3.612 GMac, 0.071% MACs, 192, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      0.447 M, 0.918% Params, 27.763 GMac, 0.546% MACs, clamp=1
+      (0): Conv2d(0.005 M, 0.010% Params, 2.473 GMac, 0.049% MACs, 4, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 4.817 GMac, 0.095% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.148 M, 0.303% Params, 1.204 GMac, 0.024% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      0.445 M, 0.913% Params, 211.954 GMac, 4.166% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.148 M, 0.303% Params, 9.634 GMac, 0.189% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.148 M, 0.303% Params, 38.537 GMac, 0.757% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.148 M, 0.303% Params, 154.149 GMac, 3.029% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.002 M, 0.005% Params, 9.634 GMac, 0.189% MACs, 128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      0.447 M, 0.918% Params, 55.527 GMac, 1.091% MACs, clamp=1
+      (0): Conv2d(0.005 M, 0.010% Params, 4.947 GMac, 0.097% MACs, 4, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 38.537 GMac, 0.757% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 9.634 GMac, 0.189% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.148 M, 0.303% Params, 2.409 GMac, 0.047% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      0.445 M, 0.913% Params, 211.954 GMac, 4.166% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.148 M, 0.303% Params, 9.634 GMac, 0.189% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.148 M, 0.303% Params, 38.537 GMac, 0.757% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.148 M, 0.303% Params, 154.149 GMac, 3.029% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.002 M, 0.005% Params, 9.634 GMac, 0.189% MACs, 128, 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      0.482 M, 0.990% Params, 1008.587 GMac, 19.822% MACs, 
+      (conv1): Conv2d(0.001 M, 0.002% Params, 2.54 GMac, 0.050% MACs, 2, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        0.443 M, 0.910% Params, 926.496 GMac, 18.208% MACs, 
+        (0): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): Conv2d(0.001 M, 0.002% Params, 2.411 GMac, 0.047% MACs, 64, 2, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (pred_prior): GoogleAnalysisTransform(
+      0.594 M, 1.219% Params, 28.366 GMac, 0.557% MACs, 
+      (0): Conv2d(0.004 M, 0.007% Params, 1.872 GMac, 0.037% MACs, 3, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.148 M, 0.303% Params, 19.269 GMac, 0.379% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.148 M, 0.303% Params, 4.817 GMac, 0.095% MACs, 128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.295 M, 0.606% Params, 2.409 GMac, 0.047% MACs, 128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+    )
+    (PA): Sequential(
+      0.903 M, 1.853% Params, 7.376 GMac, 0.145% MACs, 
+      (0): Conv2d(0.328 M, 0.674% Params, 2.679 GMac, 0.053% MACs, 512, 640, kernel_size=(1, 1), stride=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (2): Conv2d(0.41 M, 0.842% Params, 3.348 GMac, 0.066% MACs, 640, 640, kernel_size=(1, 1), stride=(1, 1))
+      (3): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (4): Conv2d(0.164 M, 0.337% Params, 1.339 GMac, 0.026% MACs, 640, 256, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+  (Resampler): Resampler(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, sample_mode=bilinear, padding_mode=border)
+  (MCNet): Refinement(
+    0.485 M, 0.996% Params, 494.104 GMac, 9.711% MACs, 
+    (l1): Sequential(
+      0.077 M, 0.159% Params, 161.903 GMac, 3.182% MACs, 
+      (0): Conv2d(0.004 M, 0.007% Params, 7.353 GMac, 0.145% MACs, 6, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ResidualBlock(
+        0.074 M, 0.152% Params, 154.55 GMac, 3.037% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (l2): Sequential(
+      0.074 M, 0.152% Params, 38.771 GMac, 0.762% MACs, 
+      (0): AvgPool2d(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, kernel_size=2, stride=2, padding=0)
+      (1): ResidualBlock(
+        0.074 M, 0.152% Params, 38.637 GMac, 0.759% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (l3): Sequential(
+      0.074 M, 0.152% Params, 9.693 GMac, 0.190% MACs, 
+      (0): AvgPool2d(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, kernel_size=2, stride=2, padding=0)
+      (1): ResidualBlock(
+        0.074 M, 0.152% Params, 9.659 GMac, 0.190% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (d3): Sequential(
+      0.074 M, 0.152% Params, 9.659 GMac, 0.190% MACs, 
+      (0): ResidualBlock(
+        0.074 M, 0.152% Params, 9.659 GMac, 0.190% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.008 GMac, 0.000% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 4.821 GMac, 0.095% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): UpsamplingBilinear2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, scale_factor=2.0, mode=bilinear)
+    )
+    (d2): Sequential(
+      0.074 M, 0.152% Params, 38.637 GMac, 0.759% MACs, 
+      (0): ResidualBlock(
+        0.074 M, 0.152% Params, 38.637 GMac, 0.759% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.033 GMac, 0.001% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 19.285 GMac, 0.379% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): UpsamplingBilinear2d(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, scale_factor=2.0, mode=bilinear)
+    )
+    (d1): Sequential(
+      0.113 M, 0.231% Params, 235.44 GMac, 4.627% MACs, 
+      (0): ResidualBlock(
+        0.074 M, 0.152% Params, 154.55 GMac, 3.037% MACs, 
+        (0): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, )
+        (1): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (2): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, inplace=True)
+        (3): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (2): ReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, inplace=True)
+      (3): Conv2d(0.002 M, 0.004% Params, 3.616 GMac, 0.071% MACs, 64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+  )
+  (Residual): CondAugmentedNormalizedFlowHyperPriorCoderPredPrior(
+    12.428 M, 25.509% Params, 2563.497 GMac, 50.381% MACs, 
+    (entropy_bottleneck): EntropyBottleneck(
+      0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, num_features=128
+      (factorizer): FactorizeModel(
+        0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 
+        (l0): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 1, 3, factor=True)
+        (l1): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l2): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 3, factor=True)
+        (l3): FactorizeCell(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 3, 1)
+      )
+    )
+    (conditional_bottleneck): GaussianConditional(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, quant_mode=RUN, use_mean=True)
+    (hyper_analysis): GoogleHyperAnalysisTransform(
+      1.758 M, 3.608% Params, 4.002 GMac, 0.079% MACs, 
+      (0): Conv2d(0.221 M, 0.454% Params, 1.806 GMac, 0.036% MACs, 128, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, inplace=True)
+      (2): Conv2d(0.922 M, 1.892% Params, 1.88 GMac, 0.037% MACs, 192, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (4): Conv2d(0.615 M, 1.261% Params, 0.313 GMac, 0.006% MACs, 192, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (hyper_synthesis): GoogleHyperSynthesisTransform(
+      2.661 M, 5.462% Params, 17.956 GMac, 0.353% MACs, 
+      (0): ConvTranspose2d(0.615 M, 1.261% Params, 1.254 GMac, 0.025% MACs, 128, 192, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (1): ReLU(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, inplace=True)
+      (2): ConvTranspose2d(1.383 M, 2.838% Params, 11.283 GMac, 0.222% MACs, 192, 288, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (3): ReLU(0.0 M, 0.000% Params, 0.002 GMac, 0.000% MACs, inplace=True)
+      (4): ConvTranspose2d(0.664 M, 1.362% Params, 5.417 GMac, 0.106% MACs, 288, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (analysis0): AugmentedNormalizedAnalysisTransform(
+      1.249 M, 2.563% Params, 80.305 GMac, 1.578% MACs, clamp=1
+      (0): Conv2d(0.019 M, 0.040% Params, 10.094 GMac, 0.198% MACs, 6, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 53.494 GMac, 1.051% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 13.374 GMac, 0.263% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.41 M, 0.841% Params, 3.343 GMac, 0.066% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis0): AugmentedNormalizedSynthesisTransform(
+      1.239 M, 2.543% Params, 601.808 GMac, 11.827% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.41 M, 0.841% Params, 26.747 GMac, 0.526% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 106.988 GMac, 2.103% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 427.953 GMac, 8.411% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 40.121 GMac, 0.788% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (analysis1): AugmentedNormalizedAnalysisTransform(
+      1.249 M, 2.563% Params, 160.61 GMac, 3.156% MACs, clamp=1
+      (0): Conv2d(0.019 M, 0.040% Params, 20.188 GMac, 0.397% MACs, 6, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 106.988 GMac, 2.103% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 26.747 GMac, 0.526% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.41 M, 0.841% Params, 6.687 GMac, 0.131% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (7): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+    )
+    (synthesis1): AugmentedNormalizedSynthesisTransform(
+      1.239 M, 2.543% Params, 601.808 GMac, 11.827% MACs, clamp=1
+      (0): Identity(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, )
+      (1): ConvTranspose2d(0.41 M, 0.841% Params, 26.747 GMac, 0.526% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (2): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (3): ConvTranspose2d(0.41 M, 0.841% Params, 106.988 GMac, 2.103% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (4): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (5): ConvTranspose2d(0.41 M, 0.841% Params, 427.953 GMac, 8.411% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+      (6): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, inverse=True, gamma_init=0.1, eps=1e-05)
+      (7): ConvTranspose2d(0.01 M, 0.020% Params, 40.121 GMac, 0.788% MACs, 128, 3, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2), output_padding=(1, 1))
+    )
+    (DQ): DeQuantizationModule(
+      0.484 M, 0.993% Params, 1010.996 GMac, 19.869% MACs, 
+      (conv1): Conv2d(0.002 M, 0.004% Params, 3.743 GMac, 0.074% MACs, 3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (resblock): Sequential(
+        0.443 M, 0.910% Params, 926.496 GMac, 18.208% MACs, 
+        (0): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (1): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (2): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (3): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (4): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        (5): DQ_ResBlock(
+          0.074 M, 0.152% Params, 154.416 GMac, 3.035% MACs, 
+          (0): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): LeakyReLU(0.0 M, 0.000% Params, 0.134 GMac, 0.003% MACs, negative_slope=0.2, inplace=True)
+          (2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+      )
+      (conv2): Conv2d(0.037 M, 0.076% Params, 77.141 GMac, 1.516% MACs, 64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (conv3): Conv2d(0.002 M, 0.004% Params, 3.616 GMac, 0.071% MACs, 64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    )
+    (pred_prior): GoogleAnalysisTransform(
+      1.649 M, 3.384% Params, 78.635 GMac, 1.545% MACs, 
+      (0): Conv2d(0.01 M, 0.020% Params, 5.08 GMac, 0.100% MACs, 3, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (1): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (2): Conv2d(0.41 M, 0.841% Params, 53.494 GMac, 1.051% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (3): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (4): Conv2d(0.41 M, 0.841% Params, 13.374 GMac, 0.263% MACs, 128, 128, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (5): GeneralizedDivisiveNorm(0.0 M, 0.000% Params, 0.0 GMac, 0.000% MACs, 128, gamma_init=0.1, eps=1e-05)
+      (6): Conv2d(0.819 M, 1.682% Params, 6.687 GMac, 0.131% MACs, 128, 256, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+    )
+    (PA): Sequential(
+      0.903 M, 1.853% Params, 7.376 GMac, 0.145% MACs, 
+      (0): Conv2d(0.328 M, 0.674% Params, 2.679 GMac, 0.053% MACs, 512, 640, kernel_size=(1, 1), stride=(1, 1))
+      (1): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (2): Conv2d(0.41 M, 0.842% Params, 3.348 GMac, 0.066% MACs, 640, 640, kernel_size=(1, 1), stride=(1, 1))
+      (3): LeakyReLU(0.0 M, 0.000% Params, 0.005 GMac, 0.000% MACs, negative_slope=0.01, inplace=True)
+      (4): Conv2d(0.164 M, 0.337% Params, 1.339 GMac, 0.026% MACs, 640, 256, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+)
+5088.27 GMac

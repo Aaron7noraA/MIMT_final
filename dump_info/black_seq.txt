@@ -1,0 +1,4 @@
+/work/tl32rodan/video_dataset/vimeo_septuplet/img/00074/0650/
+/work/tl32rodan/video_dataset/vimeo_septuplet/img/00074/0637/
+/work/tl32rodan/video_dataset/vimeo_septuplet/img/00014/0818/
+/work/tl32rodan/video_dataset/vimeo_septuplet/img/00072/0950/
