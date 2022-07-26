@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="30206b4d-12af-446a-a92a-b9a1312bc10e" name="TWCC" url="http://xdata1.twcc.ai">
+        <fileTransfer host="xdata1.twcc.ai" port="22" privateKey="$USER_HOME$/.ssh/id_rsa" rootFolder="/home/gcwscs04/TRC" accessType="SFTP" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
