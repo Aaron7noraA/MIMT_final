@@ -119,7 +119,7 @@ class Pframe(CompressesModel):
 
         from collections import OrderedDict
         new_ckpt = OrderedDict()
-        mc_checkpoint = torch.load(os.path.join(os.getenv('HOME'), 'CANFVC+', 'models', 'gridnet.pth'))
+        mc_checkpoint = torch.load(os.path.join(os.getenv('HOME'), 'CANFVC_Plus', 'models', 'gridnet.pth'))
     
         for k, v in mc_checkpoint.items():
             if k.split('.')[3] == 'backbone':
@@ -1351,8 +1351,8 @@ if __name__ == '__main__':
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
 
-        #trainer.current_epoch = phase['trainAll_2frames']
-        trainer.current_epoch = phase['trainAll_fullgop']
+        trainer.current_epoch = phase['trainAll_2frames']
+        #trainer.current_epoch = phase['trainAll_fullgop']
 
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
