@@ -1,5 +1,5 @@
 ---
-model_architecture: FeatCondANFHyperPriorCoderPredPriorGS
+model_architecture: FeatCANF_Down
     
 model_params:
     num_filters: 128
@@ -30,4 +30,3 @@ model_params:
     num_cond_features : 64
     out_synthesis : 32
     gs_hidden : 64
-    num_downscaling: 3

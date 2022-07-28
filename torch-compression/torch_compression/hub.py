@@ -107,21 +107,6 @@ class AttentionBlock(nn.Module):
         return input + self.attention_branch(input) * self.trunk_branch(input)
 
 
-# +
-# class GoogleAnalysisTransform(nn.Sequential):
-#     def __init__(self, in_channels, num_features, num_filters, kernel_size, simplify_gdn, num_convs=4):
-#         layers = []
-#         layers.append(Conv2d(in_channels, num_filters, kernel_size, stride=2)) # 1st layer
-
-#         for _ in range(num_convs-2):
-#             layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-#             layers.append(Conv2d(num_filters, num_filters, kernel_size, stride=2))
-        
-#         layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-#         layers.append(Conv2d(num_filters, num_features, kernel_size, stride=2))
-        
-#         super(GoogleAnalysisTransform, self).__init__(*layers)
-
 class GoogleAnalysisTransform(nn.Sequential):
     def __init__(self, in_channels, num_features, num_filters, kernel_size, simplify_gdn):
         super(GoogleAnalysisTransform, self).__init__(
@@ -133,21 +118,6 @@ class GoogleAnalysisTransform(nn.Sequential):
             GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn),
             Conv2d(num_filters, num_features, kernel_size, stride=2)
         )
-
-
-# +
-# class GoogleSynthesisTransform(nn.Sequential):
-#     def __init__(self, out_channels, num_features, num_filters, kernel_size, simplify_gdn, num_convs=4):
-#         layers = []
-#         layers.append(ConvTranspose2d(num_features, num_filters, kernel_size, stride=2))
-#         for _ in range(num_convs-2):
-#             layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-#             layers.append(ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2))
-       
-#         layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-#         layers.append(ConvTranspose2d(num_filters, out_channels, kernel_size, stride=2))
-
-#         super(GoogleSynthesisTransform, self).__init__(*layers)
 
 
 class GoogleSynthesisTransform(nn.Sequential):
@@ -165,8 +135,6 @@ class GoogleSynthesisTransform(nn.Sequential):
             ConvTranspose2d(num_filters, out_channels, kernel_size, stride=2)
         )
 
-
-# -
 
 class GoogleHyperAnalysisTransform(nn.Sequential):
     def __init__(self, num_features, num_filters, num_hyperpriors):
@@ -377,32 +345,6 @@ def ANFNorm(num_features, mode, inverse=False):
         return nn.Sequential()
 
 
-# +
-# class AugmentedNormalizedAnalysisTransform(AugmentedNormalizedFlow):
-#     def __init__(self, in_channels, num_features, num_filters, kernel_size, 
-#                  use_code, distribution, gdn_mode, 
-#                  use_attn=False, integerlize=False,
-#                  num_convs=4,
-#                 ):
-#         layers = []
-#         layers.append(Conv2d(in_channels, num_filters, kernel_size, stride=2)) # 1st layer
-
-#         for i in range(num_convs-2):
-#             layers.append(ANFNorm(num_filters, mode=gdn_mode))
-#             layers.append(Conv2d(num_filters, num_filters, kernel_size, stride=2))
-
-#         layers.append(ANFNorm(num_filters, mode=gdn_mode))
-#         layers.append(Conv2d(num_filters, num_features * (2 if use_code else 1), kernel_size, stride=2))
-#         layers.append(AttentionBlock(num_features * (2 if use_code else 1), non_local=True) if use_attn else nn.Identity())
-            
-#         super(AugmentedNormalizedAnalysisTransform, self).__init__(*layers, 
-#                                                                    use_code=use_code, 
-#                                                                    transpose=False, 
-#                                                                    distribution=distribution, 
-#                                                                    integerlize=integerlize)
-
-# +
-
 class AugmentedNormalizedAnalysisTransform(AugmentedNormalizedFlow):
     def __init__(self, in_channels, num_features, num_filters, kernel_size, use_code, distribution, gdn_mode, use_attn=False, integerlize=False):
         super(AugmentedNormalizedAnalysisTransform, self).__init__(
@@ -439,31 +381,6 @@ class AugmentedNormalizedSynthesisTransform(AugmentedNormalizedFlow):
             use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize
         )
 
-
-# +
-# class AugmentedNormalizedSynthesisTransform(AugmentedNormalizedFlow):
-#     def __init__(self, out_channels, num_features, num_filters, kernel_size, 
-#                  use_code, distribution, gdn_mode, 
-#                  use_attn=False, integerlize=False,
-#                  num_convs=4,
-#                 ):
-#         layers = []
-#         layers.append(AttentionBlock(num_features, non_local=True) if use_attn else nn.Identity())
-#         layers.append(ConvTranspose2d(num_features, num_filters, kernel_size, stride=2))
-       
-#         for i in range(num_convs-2):
-#             layers.append(ANFNorm(num_filters, inverse=True, mode=gdn_mode))
-#             layers.append(ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2))
-       
-#         layers.append(ANFNorm(num_filters, inverse=True, mode=gdn_mode))
-#         layers.append(ConvTranspose2d(num_filters, out_channels * (2 if use_code else 1), kernel_size, stride=2))
-        
-#         super(AugmentedNormalizedSynthesisTransform, self).__init__(*layers, 
-#                                                                     use_code=use_code, 
-#                                                                     transpose=True, 
-#                                                                     distribution=distribution, 
-#                                                                     integerlize=integerlize)
-# -
 
 class AugmentedNormalizedHyperAnalysisTransform(AugmentedNormalizedFlow):
     def __init__(self, num_features, num_filters, num_hyperpriors, use_code, distribution):
@@ -6393,19 +6310,25 @@ class FeatAugmentedNormalizedResBlockSynthesisTransform(CondAugmentedNormalizedF
 class CondAugmentedNormalizedSynthesisTransformGS(CondAugmentedNormalizedFlow):
     def __init__(self, out_channels, num_features, num_filters, kernel_size, 
                  use_code, distribution, gdn_mode, use_attn=False, integerlize=False,
-                 num_convs=4, num_cond_features=3, out_synthesis=3, gs_hidden=16, mc_decode_cond=False):
+                 num_cond_features=3, out_synthesis=3, gs_hidden=16, mc_decode_cond=False):
         super(CondAugmentedNormalizedSynthesisTransformGS, self).__init__(use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize)
  
-        layers = []
-        layers.append(AttentionBlock(num_features, non_local=True) if use_attn else nn.Identity())
-       
-        for i in range(num_convs-1):
-            layers.append(ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2))
-            layers.append(ANFNorm(num_filters, mode=gdn_mode))
-       
-        layers.append(ConvTranspose2d(num_filters, out_channels * (2 if use_code else 1), kernel_size, stride=2))
-
-        self.decode = nn.Sequential(*layers)
+        self.decode = nn.Sequential(
+            AttentionBlock(
+                num_features, non_local=True) if use_attn else nn.Identity(),
+            ConvTranspose2d(num_features, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ConvTranspose2d(num_filters, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            TransposedShortCutBlock(num_filters, num_filters, kernel_size),
+            ConvTranspose2d(num_filters, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            TransposedShortCutBlock(num_filters, num_filters, kernel_size),
+            ConvTranspose2d(num_filters, 3, kernel_size, stride=2)
+        )
         
         if mc_decode_cond:
             self.generalized_sum = nn.Sequential(
@@ -6445,6 +6368,7 @@ class CondAugmentedNormalizedSynthesisTransformGS(CondAugmentedNormalizedFlow):
         input, code, jac = self.affine_forward(input, condition, code, jac, rev, last_layer, layer, visual, figname, shift_img)
     
         return input , code, jac
+
 
 class CondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
     def __init__(self, num_cond_features=3, out_synthesis=3, gs_hidden=16, **kwargs):
@@ -7433,7 +7357,7 @@ class CondANFPredPriorZPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior
 
 
 class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
-    def __init__(self, num_cond_features=3, out_synthesis=16, gs_hidden=16, mc_decode_cond=False, num_downscaling=4, **kwargs):
+    def __init__(self, num_cond_features=3, out_synthesis=16, gs_hidden=16, mc_decode_cond=False, **kwargs):
         super(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS, self).__init__(**kwargs)
         
         if not isinstance(kwargs['num_filters'], list):
@@ -7458,7 +7382,6 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
                     in_channels + num_cond_features + 3, num_features, num_filters[i], kernel_size, 
                     use_code=use_code and i != num_layers-1 and not dec_add, 
                     distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
-                    num_convs=num_downscaling,
                 ))
             else:
                 self.__delattr__('analysis'+str(i))
@@ -7466,7 +7389,6 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
                     in_channels + num_cond_features, num_features, num_filters[i], kernel_size, 
                     use_code=use_code and i != num_layers-1 and not dec_add, 
                     distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
-                    num_convs=num_downscaling,
                 ))
 
             self.__delattr__('synthesis'+str(i))
@@ -7475,7 +7397,6 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
                 use_code=use_code and i != num_layers-1 and not dec_add, 
                 distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
                 num_cond_features=num_cond_features, out_synthesis=out_synthesis, gs_hidden=gs_hidden, mc_decode_cond=mc_decode_cond,
-                num_convs=num_downscaling,
             ))
 
         if mc_decode_cond:
@@ -7485,7 +7406,6 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
                                                       kwargs['num_predprior_filters'],
                                                       kwargs['kernel_size'],
                                                       simplify_gdn=False,
-                                                      num_convs=num_downscaling,
                                                      )
         else:
             self.pred_prior = GoogleAnalysisTransform(
@@ -7494,7 +7414,6 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
                                                       kwargs['num_predprior_filters'],
                                                       kwargs['kernel_size'],
                                                       simplify_gdn=False,
-                                                      num_convs=num_downscaling,
                                                      )
             
         for name, m in self.named_children():
@@ -7781,6 +7700,136 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
             return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ, decoded
         else:
             return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
+
+
+class GoogleAnalysisTransform3L(nn.Sequential):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size, simplify_gdn):
+        super(GoogleAnalysisTransform3L, self).__init__(
+            Conv2d(in_channels, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn),
+            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn),
+            Conv2d(num_filters, num_features, kernel_size, stride=2)
+        )
+
+
+class AugmentedNormalizedAnalysisTransform3L(AugmentedNormalizedFlow):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size, use_code, distribution, gdn_mode, use_attn=False, integerlize=False):
+        super(AugmentedNormalizedAnalysisTransform3L, self).__init__(
+            Conv2d(in_channels, num_filters, kernel_size, stride=2),
+            ANFNorm(num_filters, mode=gdn_mode),
+            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+            ANFNorm(num_filters, mode=gdn_mode),
+            Conv2d(num_filters, num_features *
+                   (2 if use_code else 1), kernel_size, stride=2),
+            AttentionBlock(num_features *
+                           (2 if use_code else 1), non_local=True) if use_attn else nn.Identity(),
+            use_code=use_code, transpose=False, distribution=distribution, integerlize=integerlize
+        )
+
+
+class CondAugmentedNormalizedSynthesisTransformGS3L(CondAugmentedNormalizedSynthesisTransformGS):
+    def __init__(self, out_channels, num_features, num_filters, kernel_size, 
+                 use_code, distribution, gdn_mode, use_attn=False, integerlize=False,
+                 num_cond_features=3, out_synthesis=3, gs_hidden=16, mc_decode_cond=False):
+        super(CondAugmentedNormalizedSynthesisTransformGS3L, self).__init__(out_channels, num_features, num_filters, kernel_size, 
+                                                                            use_code, distribution, gdn_mode, use_attn, integerlize,
+                                                                            num_cond_features, out_synthesis, gs_hidden, mc_decode_cond)
+ 
+        self.decode = nn.Sequential(
+            AttentionBlock(
+                num_features, non_local=True) if use_attn else nn.Identity(),
+            ConvTranspose2d(num_features, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ConvTranspose2d(num_filters, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ConvTranspose2d(num_filters, 3, kernel_size, stride=2)
+        )
+        
+        if mc_decode_cond:
+            self.generalized_sum = nn.Sequential(
+                Conv2d(num_cond_features + out_synthesis + 3, gs_hidden, kernel_size, stride=1),
+                nn.PReLU(),
+                Conv2d(gs_hidden, gs_hidden, kernel_size, stride=1),
+                nn.PReLU(),
+                Conv2d(gs_hidden, out_channels * (2 if use_code else 1), kernel_size, stride=1),
+            )
+        else:
+            self.generalized_sum = nn.Sequential(
+                Conv2d(num_cond_features + out_synthesis, gs_hidden, kernel_size, stride=1),
+                nn.PReLU(),
+                Conv2d(gs_hidden, gs_hidden, kernel_size, stride=1),
+                nn.PReLU(),
+                Conv2d(gs_hidden, out_channels * (2 if use_code else 1), kernel_size, stride=1),
+            )
+
+
+class FeatCANF_3Down(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
+    def __init__(self, num_cond_features=64, out_synthesis=16, gs_hidden=16, mc_decode_cond=False, **kwargs):
+        super(FeatCANF_3Down, self).__init__(**kwargs)
+        
+        if not isinstance(kwargs['num_filters'], list):
+            num_filters = [kwargs['num_filters']]
+        if len(num_filters) != kwargs['num_layers']:
+            num_filters = [num_filters[0]] * kwargs['num_layers']
+        
+        in_channels     = kwargs['in_channels']
+        num_features    = kwargs['num_features']
+        kernel_size     = kwargs['kernel_size']
+        use_code        = kwargs['use_code']
+        dec_add         = kwargs['dec_add']
+        init_code       = kwargs['init_code']
+        gdn_mode        = kwargs['gdn_mode']
+        use_attn        = kwargs['use_attn']
+        num_layers      = kwargs['num_layers']
+
+        for i in range(num_layers):
+            if mc_decode_cond:
+                self.__delattr__('analysis'+str(i))
+                self.add_module('analysis'+str(i), AugmentedNormalizedAnalysisTransform3L(
+                    in_channels + num_cond_features + 3, num_features, num_filters[i], kernel_size, 
+                    use_code=use_code and i != num_layers-1 and not dec_add, 
+                    distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
+                ))
+            else:
+                self.__delattr__('analysis'+str(i))
+                self.add_module('analysis'+str(i), AugmentedNormalizedAnalysisTransform3L(
+                    in_channels + num_cond_features, num_features, num_filters[i], kernel_size, 
+                    use_code=use_code and i != num_layers-1 and not dec_add, 
+                    distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
+                ))
+
+            self.__delattr__('synthesis'+str(i))
+            self.add_module('synthesis'+str(i), CondAugmentedNormalizedSynthesisTransformGS3L(
+                in_channels, num_features, num_filters[i], kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
+                num_cond_features=num_cond_features, out_synthesis=out_synthesis, gs_hidden=gs_hidden, mc_decode_cond=mc_decode_cond,
+            ))
+
+        if mc_decode_cond:
+            self.pred_prior = GoogleAnalysisTransform3L(
+                                                      num_cond_features + 3,
+                                                      kwargs['num_features'] * self.conditional_bottleneck.condition_size,
+                                                      kwargs['num_predprior_filters'],
+                                                      kwargs['kernel_size'],
+                                                      simplify_gdn=False,
+                                                     )
+        else:
+            self.pred_prior = GoogleAnalysisTransform3L(
+                                                      num_cond_features,
+                                                      kwargs['num_features'] * self.conditional_bottleneck.condition_size,
+                                                      kwargs['num_predprior_filters'],
+                                                      kwargs['kernel_size'],
+                                                      simplify_gdn=False,
+                                                     )
+            
+        for name, m in self.named_children():
+            if "ana" in name  or "syn" in name:
+                m.name = name
+
 
 
 class CondAugmentedNormalizedFlowResBlockCoderPredPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
