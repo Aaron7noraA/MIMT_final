@@ -107,34 +107,66 @@ class AttentionBlock(nn.Module):
         return input + self.attention_branch(input) * self.trunk_branch(input)
 
 
-class GoogleAnalysisTransform(nn.Sequential):
-    def __init__(self, in_channels, num_features, num_filters, kernel_size, simplify_gdn, num_convs=4):
-        layers = []
-        layers.append(Conv2d(in_channels, num_filters, kernel_size, stride=2)) # 1st layer
+# +
+# class GoogleAnalysisTransform(nn.Sequential):
+#     def __init__(self, in_channels, num_features, num_filters, kernel_size, simplify_gdn, num_convs=4):
+#         layers = []
+#         layers.append(Conv2d(in_channels, num_filters, kernel_size, stride=2)) # 1st layer
 
-        for _ in range(num_convs-2):
-            layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-            layers.append(Conv2d(num_filters, num_filters, kernel_size, stride=2))
+#         for _ in range(num_convs-2):
+#             layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
+#             layers.append(Conv2d(num_filters, num_filters, kernel_size, stride=2))
         
-        layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-        layers.append(Conv2d(num_filters, num_features, kernel_size, stride=2))
+#         layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
+#         layers.append(Conv2d(num_filters, num_features, kernel_size, stride=2))
         
-        super(GoogleAnalysisTransform, self).__init__(*layers)
+#         super(GoogleAnalysisTransform, self).__init__(*layers)
+
+class GoogleAnalysisTransform(nn.Sequential):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size, simplify_gdn):
+        super(GoogleAnalysisTransform, self).__init__(
+            Conv2d(in_channels, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn),
+            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn),
+            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn),
+            Conv2d(num_filters, num_features, kernel_size, stride=2)
+        )
+
+
+# +
+# class GoogleSynthesisTransform(nn.Sequential):
+#     def __init__(self, out_channels, num_features, num_filters, kernel_size, simplify_gdn, num_convs=4):
+#         layers = []
+#         layers.append(ConvTranspose2d(num_features, num_filters, kernel_size, stride=2))
+#         for _ in range(num_convs-2):
+#             layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
+#             layers.append(ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2))
+       
+#         layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
+#         layers.append(ConvTranspose2d(num_filters, out_channels, kernel_size, stride=2))
+
+#         super(GoogleSynthesisTransform, self).__init__(*layers)
 
 
 class GoogleSynthesisTransform(nn.Sequential):
-    def __init__(self, out_channels, num_features, num_filters, kernel_size, simplify_gdn, num_convs=4):
-        layers = []
-        layers.append(ConvTranspose2d(num_features, num_filters, kernel_size, stride=2))
-        for _ in range(num_convs-2):
-            layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-            layers.append(ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2))
-       
-        layers.append(GeneralizedDivisiveNorm(num_filters, simplify=simplify_gdn))
-        layers.append(ConvTranspose2d(num_filters, out_channels, kernel_size, stride=2))
+    def __init__(self, out_channels, num_features, num_filters, kernel_size, simplify_gdn):
+        super(GoogleSynthesisTransform, self).__init__(
+            ConvTranspose2d(num_features, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(
+                num_filters, inverse=True, simplify=simplify_gdn),
+            ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(
+                num_filters, inverse=True, simplify=simplify_gdn),
+            ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2),
+            GeneralizedDivisiveNorm(
+                num_filters, inverse=True, simplify=simplify_gdn),
+            ConvTranspose2d(num_filters, out_channels, kernel_size, stride=2)
+        )
 
-        super(GoogleSynthesisTransform, self).__init__(*layers)
 
+# -
 
 class GoogleHyperAnalysisTransform(nn.Sequential):
     def __init__(self, num_features, num_filters, num_hyperpriors):
@@ -345,53 +377,93 @@ def ANFNorm(num_features, mode, inverse=False):
         return nn.Sequential()
 
 
-class AugmentedNormalizedAnalysisTransform(AugmentedNormalizedFlow):
-    def __init__(self, in_channels, num_features, num_filters, kernel_size, 
-                 use_code, distribution, gdn_mode, 
-                 use_attn=False, integerlize=False,
-                 num_convs=4,
-                ):
-        layers = []
-        layers.append(Conv2d(in_channels, num_filters, kernel_size, stride=2)) # 1st layer
+# +
+# class AugmentedNormalizedAnalysisTransform(AugmentedNormalizedFlow):
+#     def __init__(self, in_channels, num_features, num_filters, kernel_size, 
+#                  use_code, distribution, gdn_mode, 
+#                  use_attn=False, integerlize=False,
+#                  num_convs=4,
+#                 ):
+#         layers = []
+#         layers.append(Conv2d(in_channels, num_filters, kernel_size, stride=2)) # 1st layer
 
-        for i in range(num_convs-2):
-            layers.append(ANFNorm(num_filters, mode=gdn_mode))
-            layers.append(Conv2d(num_filters, num_filters, kernel_size, stride=2))
+#         for i in range(num_convs-2):
+#             layers.append(ANFNorm(num_filters, mode=gdn_mode))
+#             layers.append(Conv2d(num_filters, num_filters, kernel_size, stride=2))
 
-        layers.append(ANFNorm(num_filters, mode=gdn_mode))
-        layers.append(Conv2d(num_filters, num_features * (2 if use_code else 1), kernel_size, stride=2))
-        layers.append(AttentionBlock(num_features * (2 if use_code else 1), non_local=True) if use_attn else nn.Identity())
+#         layers.append(ANFNorm(num_filters, mode=gdn_mode))
+#         layers.append(Conv2d(num_filters, num_features * (2 if use_code else 1), kernel_size, stride=2))
+#         layers.append(AttentionBlock(num_features * (2 if use_code else 1), non_local=True) if use_attn else nn.Identity())
             
-        super(AugmentedNormalizedAnalysisTransform, self).__init__(*layers, 
-                                                                   use_code=use_code, 
-                                                                   transpose=False, 
-                                                                   distribution=distribution, 
-                                                                   integerlize=integerlize)
+#         super(AugmentedNormalizedAnalysisTransform, self).__init__(*layers, 
+#                                                                    use_code=use_code, 
+#                                                                    transpose=False, 
+#                                                                    distribution=distribution, 
+#                                                                    integerlize=integerlize)
+
+# +
+
+class AugmentedNormalizedAnalysisTransform(AugmentedNormalizedFlow):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size, use_code, distribution, gdn_mode, use_attn=False, integerlize=False):
+        super(AugmentedNormalizedAnalysisTransform, self).__init__(
+            Conv2d(in_channels, num_filters, kernel_size, stride=2),
+            ANFNorm(num_filters, mode=gdn_mode),
+            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+            ANFNorm(num_filters, mode=gdn_mode),
+            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+            ANFNorm(num_filters, mode=gdn_mode),
+            Conv2d(num_filters, num_features *
+                   (2 if use_code else 1), kernel_size, stride=2),
+            AttentionBlock(num_features *
+                           (2 if use_code else 1), non_local=True) if use_attn else nn.Identity(),
+            use_code=use_code, transpose=False, distribution=distribution, integerlize=integerlize
+        )
 
 
 class AugmentedNormalizedSynthesisTransform(AugmentedNormalizedFlow):
-    def __init__(self, out_channels, num_features, num_filters, kernel_size, 
-                 use_code, distribution, gdn_mode, 
-                 use_attn=False, integerlize=False,
-                 num_convs=4,
-                ):
-        layers = []
-        layers.append(AttentionBlock(num_features, non_local=True) if use_attn else nn.Identity())
-        layers.append(ConvTranspose2d(num_features, num_filters, kernel_size, stride=2))
-       
-        for i in range(num_convs-2):
-            layers.append(ANFNorm(num_filters, inverse=True, mode=gdn_mode))
-            layers.append(ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2))
-       
-        layers.append(ANFNorm(num_filters, inverse=True, mode=gdn_mode))
-        layers.append(ConvTranspose2d(num_filters, out_channels * (2 if use_code else 1), kernel_size, stride=2))
-        
-        super(AugmentedNormalizedSynthesisTransform, self).__init__(*layers, 
-                                                                    use_code=use_code, 
-                                                                    transpose=True, 
-                                                                    distribution=distribution, 
-                                                                    integerlize=integerlize)
+    def __init__(self, out_channels, num_features, num_filters, kernel_size, use_code, distribution, gdn_mode, use_attn=False, integerlize=False):
+        super(AugmentedNormalizedSynthesisTransform, self).__init__(
+            AttentionBlock(
+                num_features, non_local=True) if use_attn else nn.Identity(),
+            ConvTranspose2d(num_features, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ConvTranspose2d(num_filters, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ConvTranspose2d(num_filters, num_filters,
+                            kernel_size, stride=2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ConvTranspose2d(num_filters, out_channels *
+                            (2 if use_code else 1), kernel_size, stride=2),
+            use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize
+        )
 
+
+# +
+# class AugmentedNormalizedSynthesisTransform(AugmentedNormalizedFlow):
+#     def __init__(self, out_channels, num_features, num_filters, kernel_size, 
+#                  use_code, distribution, gdn_mode, 
+#                  use_attn=False, integerlize=False,
+#                  num_convs=4,
+#                 ):
+#         layers = []
+#         layers.append(AttentionBlock(num_features, non_local=True) if use_attn else nn.Identity())
+#         layers.append(ConvTranspose2d(num_features, num_filters, kernel_size, stride=2))
+       
+#         for i in range(num_convs-2):
+#             layers.append(ANFNorm(num_filters, inverse=True, mode=gdn_mode))
+#             layers.append(ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2))
+       
+#         layers.append(ANFNorm(num_filters, inverse=True, mode=gdn_mode))
+#         layers.append(ConvTranspose2d(num_filters, out_channels * (2 if use_code else 1), kernel_size, stride=2))
+        
+#         super(AugmentedNormalizedSynthesisTransform, self).__init__(*layers, 
+#                                                                     use_code=use_code, 
+#                                                                     transpose=True, 
+#                                                                     distribution=distribution, 
+#                                                                     integerlize=integerlize)
+# -
 
 class AugmentedNormalizedHyperAnalysisTransform(AugmentedNormalizedFlow):
     def __init__(self, num_features, num_filters, num_hyperpriors, use_code, distribution):
@@ -7359,7 +7431,7 @@ class CondANFPredPriorZPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior
         else:
             return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ, y_tilde
 
-        
+
 class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
     def __init__(self, num_cond_features=3, out_synthesis=16, gs_hidden=16, mc_decode_cond=False, num_downscaling=4, **kwargs):
         super(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS, self).__init__(**kwargs)
@@ -8223,7 +8295,7 @@ class AugmentedNormalizedSynthesisTransformDCVC(AugmentedNormalizedFlow):
             ResBlock_LeakyReLU_0_Point_1(num_filters),
             SubPixelConv2d(num_filters, out_channels, 3, stride=2, padding=1, output_padding=1),
             use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize)
-       
+
 
 class CondANFPredPriorDCVCBackbone(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
     def __init__(self, **kwargs):

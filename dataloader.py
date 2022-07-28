@@ -201,10 +201,10 @@ class VideoTestDataIframe(torchData):
             dataset_name_list.extend(['UVG']*7)
 
             #seq_len.extend([120]*7)
-            #self.seq_name.extend(['HoneyBee', 'ReadySteadyGo'])
-            #seq_len.extend([96]*2)
-            #gop_size.extend([GOP]*2)
-            #dataset_name_list.extend(['UVG']*2)
+            #self.seq_name.extend(['Beauty'])
+            #seq_len.extend([96])
+            #gop_size.extend([GOP])
+            #dataset_name_list.extend(['UVG'])
         if 'B' in sequence:
             self.seq_name.extend(['Kimono1', 'BQTerrace', 'Cactus', 'BasketballDrive', 'ParkScene'])
             if GOP in [12, 16]:

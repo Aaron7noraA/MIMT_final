@@ -331,15 +331,14 @@ class Pframe(CompressesModel):
 
         elif epoch < phase['train_aux']:
             self.requires_grad_(True)
-            if epoch < phase['trainAll_fullgop'] and self.args.restore != 'finetune':
-                frozen_modules = [self.MWNet, self.MENet]
-                for module in frozen_modules:
-                    for param in module.parameters(): 
-                            self.optimizers().state[param] = {} # remove all state (step, exp_avg, exp_avg_sg)
+            #if epoch < phase['trainAll_fullgop'] and self.args.restore != 'finetune':
+            #    frozen_modules = [self.MWNet, self.MENet]
+            #    for module in frozen_modules:
+            #        for param in module.parameters(): 
+            #                self.optimizers().state[param] = {} # remove all state (step, exp_avg, exp_avg_sg)
 
-                module.requires_grad_(False)
+            #    module.requires_grad_(False)
 
-            ref_frame = batch[:, 0]
             reconstructed = ref_frame
 
             loss = torch.tensor(0., dtype=torch.float, device=reconstructed.device)
@@ -1109,7 +1108,7 @@ if __name__ == '__main__':
     seed_everything(888888)
 
     #save_root = "/work/u4803414/torchDVC/"
-    save_root = os.getenv('LOG', './') + '/torchDVC/'
+    save_root = os.path.join(os.getenv('LOG', './'), 'torchDVC/')
 
     parser = argparse.ArgumentParser(add_help=True)
 
@@ -1351,8 +1350,8 @@ if __name__ == '__main__':
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
 
-        trainer.current_epoch = phase['trainAll_2frames']
-        #trainer.current_epoch = phase['trainAll_fullgop']
+        #trainer.current_epoch = phase['trainAll_2frames']
+        trainer.current_epoch = phase['trainAll_fullgop']
 
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
