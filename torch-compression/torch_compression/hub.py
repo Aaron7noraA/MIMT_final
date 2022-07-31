@@ -7766,6 +7766,25 @@ class CondAugmentedNormalizedSynthesisTransformGS3L(CondAugmentedNormalizedSynth
             )
 
 
+class DeQuantizationModule_UP(nn.Module):
+
+    def __init__(self, in_channels, out_channels, num_filters, num_layers):
+        super(DeQuantizationModule_UP, self).__init__()
+        self.conv1 = ConvTranspose2d(in_channels, num_filters, 3, stride=2)
+        self.resblock = nn.Sequential(
+            *[DQ_ResBlock(num_filters) for _ in range(num_layers)])
+        self.conv2 = Conv2d(num_filters, num_filters, 3)
+        self.conv3 = Conv2d(num_filters, out_channels, 3)
+
+    def forward(self, input):
+        conv1 = self.conv1(input)
+        x = self.resblock(conv1)
+        conv2 = self.conv2(x) + conv1
+        conv3 = self.conv3(conv2) + input
+
+        return conv3
+
+
 class FeatCANF_3Down(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
     def __init__(self, num_cond_features=64, out_synthesis=16, gs_hidden=16, mc_decode_cond=False, **kwargs):
         super(FeatCANF_3Down, self).__init__(**kwargs)
@@ -7784,6 +7803,7 @@ class FeatCANF_3Down(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
         gdn_mode        = kwargs['gdn_mode']
         use_attn        = kwargs['use_attn']
         num_layers      = kwargs['num_layers']
+        use_DQ          = kwargs['use_DQ']
 
         for i in range(num_layers):
             if mc_decode_cond:
@@ -7830,6 +7850,10 @@ class FeatCANF_3Down(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
             if "ana" in name  or "syn" in name:
                 m.name = name
 
+        if use_DQ:
+            self.DQ = DeQuantizationModule_UP(in_channels, 3, 64, 6))
+        else:
+            self.DQ = None
 
 
 class CondAugmentedNormalizedFlowResBlockCoderPredPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
@@ -9007,6 +9031,7 @@ __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPri
                    "GroupContextCondANFICPredPrior": GroupContextCondANFICPredPrior,
                    "CondANFHyperPriorCoderPredPrior": CondAugmentedNormalizedFlowHyperPriorCoderPredPrior,
                    "CondANFPredPriorZPrior": CondANFPredPriorZPrior,
+                   "FeatCANF_3Down": FeatCANF_3Down,
                    "CondANFHyperPriorCoderPredPriorGetDecode": CondAugmentedNormalizedFlowHyperPriorCoderPredPriorGetDecode,
                    "CondANFHyperPriorCoderPredPrior1LConcat": CondAugmentedNormalizedFlowHyperPriorCoderPredPrior1LConcat,
                    "CondANFHyperPriorCoderPredPriorYUV": CondAugmentedNormalizedFlowHyperPriorCoderPredPriorYUV,
