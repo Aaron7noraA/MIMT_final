@@ -1,5 +1,5 @@
 ---
-model_architecture: FeatCANF_Down
+model_architecture: FeatCANF_3Down
     
 model_params:
     num_filters: 128
@@ -25,8 +25,8 @@ model_params:
     output_nought: False
     cond_coupling: True
     num_cond_frames: 1
-    in_channels_predprior: 3
+    in_channels_predprior: 64
     num_predprior_filters: 128
     num_cond_features : 64
-    out_synthesis : 32
+    out_synthesis : 64
     gs_hidden : 64

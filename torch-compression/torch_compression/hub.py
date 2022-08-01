@@ -6327,7 +6327,7 @@ class CondAugmentedNormalizedSynthesisTransformGS(CondAugmentedNormalizedFlow):
                             kernel_size, stride=2),
             ANFNorm(num_filters, inverse=True, mode=gdn_mode),
             TransposedShortCutBlock(num_filters, num_filters, kernel_size),
-            ConvTranspose2d(num_filters, 3, kernel_size, stride=2)
+            ConvTranspose2d(num_filters, out_synthesis, kernel_size, stride=2)
         )
         
         if mc_decode_cond:
@@ -7451,6 +7451,7 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
                     cond = cond_coupling_input[i]
                 else:
                     cond = cond_coupling_input
+
                 input, _, jac = self['synthesis'+str(i)](
                     input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
                 
@@ -7745,7 +7746,7 @@ class CondAugmentedNormalizedSynthesisTransformGS3L(CondAugmentedNormalizedSynth
             ConvTranspose2d(num_filters, num_filters,
                             kernel_size, stride=2),
             ANFNorm(num_filters, inverse=True, mode=gdn_mode),
-            ConvTranspose2d(num_filters, 3, kernel_size, stride=2)
+            ConvTranspose2d(num_filters, out_synthesis, kernel_size, stride=2)
         )
         
         if mc_decode_cond:
@@ -7780,7 +7781,7 @@ class DeQuantizationModule_UP(nn.Module):
         conv1 = self.conv1(input)
         x = self.resblock(conv1)
         conv2 = self.conv2(x) + conv1
-        conv3 = self.conv3(conv2) + input
+        conv3 = self.conv3(conv2)
 
         return conv3
 
@@ -7851,7 +7852,7 @@ class FeatCANF_3Down(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
                 m.name = name
 
         if use_DQ:
-            self.DQ = DeQuantizationModule_UP(in_channels, 3, 64, 6))
+            self.DQ = DeQuantizationModule_UP(in_channels, 3, 64, 6)
         else:
             self.DQ = None
 

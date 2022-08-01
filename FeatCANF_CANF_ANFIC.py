@@ -97,7 +97,7 @@ class Pframe(CompressesModel):
 
         self.CondMotion = cond_mo_coder
         
-        self.frame2feat = nn.Seuqential(Conv2d(3, 64, 3, stride=2), ResidualBlock(64, 64))
+        self.frame2feat = nn.Sequential(Conv2d(3, 64, 3, stride=2), ResidualBlock(64, 64))
 
         self.feature_extractors = nn.ModuleList([ResidualBlock(3, 32), DownsampleBlock(32, 64), DownsampleBlock(64, 96)])
 
@@ -1076,7 +1076,7 @@ if __name__ == '__main__':
                 new_ckpt[k] = v
 
         model = Pframe(args, cond_mo_coder, res_coder).cuda()
-        model.load_state_dict(new_ckpt, strict=True)
+        model.load_state_dict(new_ckpt, strict=False)
 
 
     elif args.restore == 'finetune':
