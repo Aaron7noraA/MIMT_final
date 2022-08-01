@@ -13,3 +13,5 @@ tqdm==4.61.2
 higher==0.2.1
 pytorch-lightning==1.0.0
 comet-ml==3.13.2
+flowiz==2.4.0
+seaborn==0.11.2
