@@ -20,7 +20,7 @@ from pytorch_lightning.loggers import CometLogger
 from thop import profile
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder
+from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder, Conv2d
 from torch_compression.modules.entropy_models import EntropyBottleneck
 from torchinfo import summary
 from torchvision import transforms
@@ -32,14 +32,13 @@ from util.vision import PlotFlow, PlotHeatMap, save_image
 plot_flow = PlotFlow().cuda()
 plot_bitalloc = PlotHeatMap("RB").cuda()
 
-phase = {'trainMC': 3,
-         'trainRes_2frames': 5, 
-         'trainAll_2frames': 8, 
-         'trainAll_fullgop': 13, 
-         'trainAll_RNN_1': 15, 
-         'trainAll_RNN_2': 18,
+phase = {'trainMC': 5,
+         'trainRes_2frames': 7, 
+         'trainAll_2frames': 10, 
+         'trainAll_fullgop': 15, 
+         'trainAll_RNN_1': 20, 
+         'trainAll_RNN_2': 23,
          'train_aux': 100}
-
 
 # Custom pytorch-lightning trainer ; provide feature that configuring trainer.current_epoch
 class CompressesModelTrainer(Trainer):
@@ -91,12 +90,14 @@ class Pframe(CompressesModel):
         super(Pframe, self).__init__()
         self.args = args
         self.criterion = nn.MSELoss(reduction='none') if not self.args.ssim else MS_SSIM(data_range=1.).cuda()
-
+        
         self.if_model = AugmentedNormalizedFlowHyperPriorCoder(128, 320, 192, num_layers=2, use_DQ=True, use_code=False,
                                                                use_context=True, condition='GaussianMixtureModel',
                                                                quant_mode='RUN')
 
         self.CondMotion = cond_mo_coder
+        
+        self.frame2feat = nn.Seuqential(Conv2d(3, 64, 3, stride=2), ResidualBlock(64, 64))
 
         self.feature_extractors = nn.ModuleList([ResidualBlock(3, 32), DownsampleBlock(32, 64), DownsampleBlock(64, 96)])
 
@@ -126,9 +127,11 @@ class Pframe(CompressesModel):
         self.args = args
 
     def motion_forward(self, ref_frame, coding_frame, visual=False, visual_prefix=''):
-        x_bar, likelihood_m, y2, _, _, _ = self.CondMotion(coding_frame, output=ref_frame, 
-                                                                         cond_coupling_input=ref_frame, 
-                                                                         visual=visual, figname=visual_prefix+'_motion')
+        ref_feat = self.frame2feat(ref_frame)
+        coding_feat = self.frame2feat(coding_frame)
+        x_bar, likelihood_m, y2, _, _, _ = self.CondMotion(coding_feat, output=ref_feat, 
+                                                           cond_coupling_input=ref_feat, 
+                                                           visual=visual, figname=visual_prefix+'_motion')
         feats1 = [x_bar]
         feats2 = [ref_frame]
         for i, feature_extractor in enumerate(self.feature_extractors):
@@ -140,6 +143,8 @@ class Pframe(CompressesModel):
 
         likelihoods = likelihood_m
         data = {'likelihood_m': likelihood_m, 
+                'ref_feat': ref_feat,
+                'coding_feat': coding_feat,
                 'x_bar': x_bar, 'y2': y2,
                 'mc_frame': mc_frame}
 
@@ -174,7 +179,7 @@ class Pframe(CompressesModel):
 
             distortion = self.criterion(coding_frame, mc_frame)
             rate = trc.estimate_bpp(likelihood_m, input=coding_frame)
-            y2_error = nn.MSELoss(reduction='none')(ref_frame, data['y2'])
+            y2_error = nn.MSELoss(reduction='none')(data['ref_feat'], data['y2'])
 
             loss = self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * y2_error.mean()
         
@@ -326,7 +331,6 @@ class Pframe(CompressesModel):
                 # coding_frame = align.resume(batch[:, frame_idx]).clamp(0, 1)
                 mc_frame = align.resume(mc_frame).clamp(0, 1)
                 mc_hat = align.resume(mc_hat).clamp(0, 1)
-                y2 = align.resume(m_info['y2']).clamp(0, 1)
                 x_bar = align.resume(m_info['x_bar']).clamp(0, 1)
 
                 rate = trc.estimate_bpp(likelihoods, input=ref_frame).mean().item()
@@ -344,7 +348,6 @@ class Pframe(CompressesModel):
                     upload_img(rec_frame.cpu().numpy()[0], seq_name + '_{:d}_rec_frame_{:.3f}.png'.format(epoch, psnr), grid=False)
                     upload_img(mc_hat.cpu().numpy()[0], seq_name + '_{:d}_mc_hat.png'.format(epoch), grid=False)
                     upload_img(x_bar.cpu().numpy()[0], seq_name + '_{:d}_x_bar.png'.format(epoch), grid=False)
-                    upload_img(y2.cpu().numpy()[0], seq_name + '_{:d}_motion_y2.png'.format(epoch), grid=False)
 
                 ref_frame = rec_frame
 
@@ -514,7 +517,6 @@ class Pframe(CompressesModel):
                 ref_frame = align.resume(ref_frame)
                 mc_frame = align.resume(mc_frame)
                 x_bar = align.resume(m_info['x_bar'])
-                y2 = align.resume(m_info['y2'])
                 coding_frame = align.resume(coding_frame)
                 mc_hat = align.resume(mc_hat)
                 BDQ = align.resume(BDQ)
@@ -539,8 +541,6 @@ class Pframe(CompressesModel):
                                                             f'frame_{int(frame_id_start + frame_idx)}.png')
                     save_image(mc_hat[0], self.args.save_dir + f'/{seq_name}/mc_hat/'
                                                                f'frame_{int(frame_id_start + frame_idx)}.png')
-                    save_image(y2[0], self.args.save_dir + f'/{seq_name}/mc_hat/'
-                                                               f'frame_{int(frame_id_start + frame_idx)}_motion_y2.png')
 
                 rate = trc.estimate_bpp(likelihoods, input=ref_frame).mean().item()
                 mse = self.criterion(ref_frame, batch[:, frame_idx]).mean().item()
@@ -1072,12 +1072,8 @@ if __name__ == '__main__':
             new_ckpt[key] = v
 
         for k, v in checkpoint['state_dict'].items():
-            if k.split('.')[0] == 'feature_extractors' or k.split('.')[0] == 'MCNet':
+            if k.split('.')[0] == 'feature_extractors' or k.split('.')[0] == 'MCNet' or k.split('.')[0] == 'Residual':
                 new_ckpt[k] = v
-            elif k.split('.')[0] == 'Residual':
-                new_ckpt[k] = v
-                key = '.'.join(['CondMotion']+k.split('.')[1:])
-                new_ckpt[key] = v
 
         model = Pframe(args, cond_mo_coder, res_coder).cuda()
         model.load_state_dict(new_ckpt, strict=True)
