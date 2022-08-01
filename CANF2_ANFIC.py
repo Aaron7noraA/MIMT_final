@@ -17,7 +17,6 @@ from ptflops import get_model_complexity_info
 from pytorch_lightning import LightningModule, Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
-from thop import profile
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder
