@@ -32,7 +32,8 @@ from util.vision import PlotFlow, PlotHeatMap, save_image
 plot_flow = PlotFlow().cuda()
 plot_bitalloc = PlotHeatMap("RB").cuda()
 
-phase = {'trainMC': 5,
+phase = {'trainMV': 3,
+         'trainMC': 5,
          'trainRes_2frames': 7, 
          'trainAll_2frames': 10, 
          'trainAll_fullgop': 15, 
@@ -172,12 +173,12 @@ class Pframe(CompressesModel):
         with torch.no_grad():
             ref_frame, _, _, _, _, _ = self.if_model(ref_frame)
 
-        if epoch < phase['trainMC']:
-            _phase = 'MC'
+        if epoch < phase['trainMV']:
+            _phase = 'MV'
             coding_frame = batch[:, 1]
             mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame)
 
-            distortion = self.criterion(coding_frame, mc_frame)
+            distortion = self.criterion(coding_frame, data['x_bar'])
             rate = trc.estimate_bpp(likelihood_m, input=coding_frame)
             y2_error = nn.MSELoss(reduction='none')(data['ref_feat'], data['y2'])
 
@@ -187,6 +188,21 @@ class Pframe(CompressesModel):
                     'train/distortion': distortion.mean().item(),
                     'train/rate': rate.mean().item(),
                     'train/y2_error': y2_error.mean().item()
+                   }
+
+        elif epoch < phase['trainMC']:
+            _phase = 'MC'
+            coding_frame = batch[:, 1]
+            mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame)
+
+            distortion = self.criterion(coding_frame, mc_frame)
+            rate = trc.estimate_bpp(likelihood_m, input=coding_frame)
+
+            loss = self.args.lmda * distortion.mean() + rate.mean()
+        
+            logs = {'train/loss': loss.item(),
+                    'train/distortion': distortion.mean().item(),
+                    'train/rate': rate.mean().item(),
                    }
 
         elif epoch < phase['train_aux']:
