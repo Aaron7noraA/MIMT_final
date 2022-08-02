@@ -804,7 +804,7 @@ class Pframe(CompressesModel):
                 transforms.ToTensor()
             ])
 
-            self.train_dataset = VideoDataIframe(dataset_root + "/vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
+            self.train_dataset = VideoDataIframe(os.path.join(dataset_root, 'vimeo_septuplet'), 'BPG_QP' + str(qp), 7,
                                                  transform=transformer)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 

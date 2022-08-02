@@ -103,7 +103,7 @@ class VideoData(torchData):
 
     def __init__(self, root, frames, transform=rgb_transform):
         super().__init__()
-        self.folder = glob(root + 'img/*/*/')
+        self.folder = glob(os.path.join(root, 'img/*/*/'))
         self.frames = frames
         self.transform = transform
 
@@ -138,7 +138,7 @@ class VideoDataIframe(VideoData):
         transform
     """
 
-    def __init__(self, root, mode, frames, transform=rgb_transform, bpg=True):
+    def __init__(self, root, mode, frames, transform=rgb_transform, bpg=False):
         super().__init__(root, frames, transform)
         #self.folder = glob(root + 'img/00014/0818/')
         self.mode = mode
