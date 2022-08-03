@@ -138,13 +138,13 @@ class VideoDataIframe(VideoData):
         transform
     """
 
-    def __init__(self, root, mode, frames, transform=rgb_transform, bpg=False):
+    def __init__(self, root, mode, frames, transform=rgb_transform, bpg=True):
         super().__init__(root, frames, transform)
         #self.folder = glob(root + 'img/00014/0818/')
         self.mode = mode
         self.bpg = bpg
         self.Iframe_dir = 'Iframe{}'.format(self.mode.split('_')[0])
-        
+
         black_seqs = []
         #for training_seq in self.folder:
         #    file = training_seq + '0.png'
