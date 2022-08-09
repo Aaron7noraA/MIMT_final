@@ -7787,7 +7787,7 @@ class DeQuantizationModule_UP(nn.Module):
 
 
 class FeatCANF_3Down(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
-    def __init__(self, num_cond_features=64, out_synthesis=16, gs_hidden=16, mc_decode_cond=False, **kwargs):
+    def __init__(self, **kwargs):
         super(FeatCANF_3Down, self).__init__(**kwargs)
         
         if not isinstance(kwargs['num_filters'], list):
@@ -7795,16 +7795,20 @@ class FeatCANF_3Down(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
         if len(num_filters) != kwargs['num_layers']:
             num_filters = [num_filters[0]] * kwargs['num_layers']
         
-        in_channels     = kwargs['in_channels']
-        num_features    = kwargs['num_features']
-        kernel_size     = kwargs['kernel_size']
-        use_code        = kwargs['use_code']
-        dec_add         = kwargs['dec_add']
-        init_code       = kwargs['init_code']
-        gdn_mode        = kwargs['gdn_mode']
-        use_attn        = kwargs['use_attn']
-        num_layers      = kwargs['num_layers']
-        use_DQ          = kwargs['use_DQ']
+        in_channels       = kwargs['in_channels']
+        num_features      = kwargs['num_features']
+        kernel_size       = kwargs['kernel_size']
+        use_code          = kwargs['use_code']
+        dec_add           = kwargs['dec_add']
+        init_code         = kwargs['init_code']
+        gdn_mode          = kwargs['gdn_mode']
+        use_attn          = kwargs['use_attn']
+        num_layers        = kwargs['num_layers']
+        use_DQ            = kwargs['use_DQ']
+        num_cond_features = kwargs['num_cond_features']
+        out_synthesis     = kwargs['out_synthesis']
+        gs_hidden         = kwargs['gs_hidden']
+        mc_decode_cond    = kwargs['mc_decode_cond']
 
         for i in range(num_layers):
             if mc_decode_cond:

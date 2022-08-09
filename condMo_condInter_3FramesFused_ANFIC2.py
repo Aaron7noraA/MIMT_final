@@ -40,7 +40,7 @@ plot_bitalloc = PlotHeatMap("RB").cuda()
 phase = {'trainMV': 15, 'trainMC': 20, 
          'trainRes_2frames': 22, 
          'trainAll_2frames': 22, 
-         'trainAll_fullgop': 30, 
+         'trainAll_fullgop': 28, 
          'trainAll_RNN_1': 33, 
          'trainAll_RNN_2': 40,
          'train_aux': 100}
@@ -1100,7 +1100,7 @@ class Pframe(CompressesModel):
             ])
 
             self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+                                                 transform=transformer, bpg=False)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1307,8 +1307,8 @@ if __name__ == '__main__':
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
 
-        #trainer.current_epoch = phase['trainAll_fullgop'] - 2
-        trainer.current_epoch = epoch_num + 1
+        trainer.current_epoch = phase['trainAll_fullgop'] - 2
+        #trainer.current_epoch = epoch_num + 1
         #trainer.current_epoch = phase['train_aux'] 
 
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),

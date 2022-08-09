@@ -161,16 +161,17 @@ class Pframe(CompressesModel):
                                                                              pred_prior_input=pred_frame,
                                                                              visual=visual, figname=visual_prefix+'_motion')
 
-            self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat.detach())
+            self.MWNet.append_flow(flow_hat)
 
             feats1 = [self.Resampler(ref_frame, flow_hat)]
             feats2 = [ref_frame]
             for i, feature_extractor in enumerate(self.feature_extractors):
                 feat = feature_extractor(feats2[i])
-                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True)))
+                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True) * 2**(-i) ))
                 feats2.append(feat)
 
-            feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
+            feats = [torch.cat([feat1, feat2], axis=1) for feat1, feat2 in zip(feats1, feats2)]
             mc_frame, _ = self.MCNet(feats)
 
             likelihoods = likelihood_m
@@ -190,10 +191,11 @@ class Pframe(CompressesModel):
                 feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True) * 2**(-i) ))
                 feats2.append(feat)
 
-            feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
+            feats = [torch.cat([feat1, feat2], axis=1) for feat1, feat2 in zip(feats1, feats2)]
             mc_frame, _ = self.MCNet(feats)
 
-            self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat.detach())
+            self.MWNet.append_flow(flow_hat)
 
             likelihoods = likelihood_m
             data = {'likelihood_m': likelihood_m, 'flow': flow, 'flow_hat': flow_hat, 'mc_frame': mc_frame, 'warped_frame': feats1[0]}
@@ -379,7 +381,8 @@ class Pframe(CompressesModel):
                                                                                       prev_latent=self.prev_latent,
                                                                                      )
 
-                self.frame_buffer.append(reconstructed.detach())
+                #self.frame_buffer.append(reconstructed.detach())
+                self.frame_buffer.append(reconstructed)
 
                 likelihoods = likelihood_m + likelihood_r
 
@@ -1044,7 +1047,7 @@ class Pframe(CompressesModel):
             ])
 
             self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+                                                 transform=transformer, bpg=True)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':

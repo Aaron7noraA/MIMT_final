@@ -1,14 +1,14 @@
 ---
-model_architecture: FeatCANF_3Down
+model_architecture: CondANFPredPriorDCVCBackbone
     
 model_params:
-    num_filters: 128
-    num_features: 128
-    num_hyperpriors: 128
-    hyper_filters: 192
+    num_filters: 64
+    num_features: 96
+    num_hyperpriors: 64
+    hyper_filters: 64
     gdn_mode: standard
-    in_channels: 64
-    out_channels: 64
+    in_channels: 2
+    out_channels: 2
     kernel_size: 3
     num_layers: 2
     init_code: gaussian
@@ -22,12 +22,12 @@ model_params:
     use_context: False
     condition: Gaussian
     quant_mode: RUN
-    output_nought: False
+    output_nought: True
     cond_coupling: True
     num_cond_frames: 1
-    in_channels_predprior: 64
-    num_predprior_filters: 128
-    num_cond_features : 64
-    out_synthesis : 64
-    gs_hidden : 64
+    in_channels_predprior: 3
+    num_predprior_filters: 64
+    num_cond_features: 2
+    out_synthesis: 64
+    gs_hidden: 64
     mc_decode_cond: False

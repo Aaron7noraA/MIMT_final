@@ -139,7 +139,7 @@ class Pframe(CompressesModel):
             feats1.append(feature_extractor(feats1[i]))
             feats2.append(feature_extractor(feats2[i]))
 
-        feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
+        feats = [torch.cat([feat1, feat2], axis=1) for feat1, feat2 in zip(feats1, feats2)]
         mc_frame, _ = self.MCNet(feats)
 
         likelihoods = likelihood_m
@@ -231,7 +231,7 @@ class Pframe(CompressesModel):
                 frame_count += 1
                 ref_frame = reconstructed
                 
-                if epoch < phase['trainAll_fullgop'] or phase['trainAll_RNN_2'] <= epoch:
+                if epoch < phase['trainAll_fullgop']:
                     ref_frame = ref_frame.detach()
 
                 coding_frame = batch[:, frame_idx]
@@ -255,7 +255,7 @@ class Pframe(CompressesModel):
                 else:
                     mc_error = nn.MSELoss(reduction='none')(mc, mc_hat)
                 
-                loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
+                loss += self.args.lmda * distortion.mean() + rate.mean()# + 0.01 * self.args.lmda * mc_error.mean()
 
                 dist_list.append(distortion.mean())
                 rate_list.append(rate.mean())
@@ -446,8 +446,7 @@ class Pframe(CompressesModel):
         return None
 
     def test_step(self, batch, batch_idx):
-        metrics_name = ['PSNR', 'Rate', 'Mo_Rate', 'MC-PSNR', 'MCrec-PSNR', 'MCerr-PSNR', 'BDQ-PSNR', 'QE-PSNR',
-                        'back-PSNR', 'p1-PSNR', 'p1-BDQ-PSNR', 'BMC-PSNR']
+        metrics_name = ['PSNR', 'Rate', 'Mo_Rate', 'MC-PSNR', 'MCrec-PSNR', 'MCerr-PSNR', 'p1-PSNR', 'BMC-PSNR']
         metrics = {}
         for m in metrics_name:
             metrics[m] = []
@@ -489,12 +488,14 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 #and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['Kimono1', 'HoneyBee', 'Jockey']
+            if not TO_VISUALIZE:
+                break
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
                 # reconstruced frame will be next ref_frame
-                if TO_VISUALIZE:
+                if False and TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'), exist_ok=True)
 
                     rec_frame, likelihoods, m_info, mc_frame, mc_hat, BDQ\
@@ -535,13 +536,11 @@ class Pframe(CompressesModel):
                 x_bar = align.resume(m_info['x_bar'])
                 coding_frame = align.resume(coding_frame)
                 mc_hat = align.resume(mc_hat)
-                BDQ = align.resume(BDQ)
 
                 os.makedirs(self.args.save_dir + f'/{seq_name}/gt_frame', exist_ok=True)
                 os.makedirs(self.args.save_dir + f'/{seq_name}/mc_frame', exist_ok=True)
                 os.makedirs(self.args.save_dir + f'/{seq_name}/rec_frame', exist_ok=True)
                 os.makedirs(self.args.save_dir + f'/{seq_name}/pred_frame', exist_ok=True)
-                os.makedirs(self.args.save_dir + f'/{seq_name}/BDQ', exist_ok=True)
                 os.makedirs(self.args.save_dir + f'/{seq_name}/mc_hat', exist_ok=True)
 
                 if TO_VISUALIZE:
@@ -553,8 +552,6 @@ class Pframe(CompressesModel):
                                                                    f'frame_{int(frame_id_start + frame_idx)}_bmc.png')
                     save_image(ref_frame[0], self.args.save_dir + f'/{seq_name}/rec_frame/'
                                                                   f'frame_{int(frame_id_start + frame_idx)}.png')
-                    save_image(BDQ[0], self.args.save_dir + f'/{seq_name}/BDQ/'
-                                                            f'frame_{int(frame_id_start + frame_idx)}.png')
                     save_image(mc_hat[0], self.args.save_dir + f'/{seq_name}/mc_hat/'
                                                                f'frame_{int(frame_id_start + frame_idx)}.png')
 
@@ -579,26 +576,16 @@ class Pframe(CompressesModel):
                 mc_err_psnr = mse2psnr(self.criterion(mc_frame, mc_hat).mean().item())
                 metrics['MCerr-PSNR'].append(mc_err_psnr)
 
-                BDQ_psnr = mse2psnr(self.criterion(BDQ, coding_frame).mean().item())
-                metrics['BDQ-PSNR'].append(BDQ_psnr)
-
-                QE_psnr = mse2psnr(self.criterion(BDQ, ref_frame).mean().item())
-                metrics['QE-PSNR'].append(QE_psnr)
-
-                back_psnr = mse2psnr(self.criterion(mc_frame, BDQ).mean().item())
-                metrics['back-PSNR'].append(back_psnr)
-
                 warp_pre_psnr = mse2psnr(self.criterion(x_bar, coding_frame).mean().item())
                 metrics['BMC-PSNR'].append(warp_pre_psnr)
 
                 if frame_idx == 1:
                     metrics['p1-PSNR'].append(psnr)
-                    metrics['p1-BDQ-PSNR'].append(BDQ_psnr)
 
                 log_list.append({'PSNR': psnr, 'Rate': rate, 'MC-PSNR': mc_psnr,
                                  'my': estimate_bpp(likelihoods[0]).item(), 'mz': estimate_bpp(likelihoods[1]).item(),
                                  'ry': estimate_bpp(likelihoods[2]).item(), 'rz': estimate_bpp(likelihoods[3]).item(),
-                                 'MCerr-PSNR': mc_err_psnr, 'BDQ-PSNR': BDQ_psnr, 'BMC-PSNR': warp_pre_psnr})
+                                 'MCerr-PSNR': mc_err_psnr, 'BMC-PSNR': warp_pre_psnr})
 
             else: 
                 with torch.no_grad():
@@ -822,7 +809,7 @@ class Pframe(CompressesModel):
             ])
 
             self.train_dataset = VideoDataIframe(dataset_root + "/vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+                                                 transform=transformer, bpg=False)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1005,7 +992,7 @@ if __name__ == '__main__':
             key = 'if_model.' + k
             checkpoint['state_dict'][key] = v
 
-        trainer.current_epoch = epoch_num - 1
+        trainer.current_epoch = epoch_num + 1
         
         model = Pframe(args, cond_mo_coder, res_coder).cuda()
         model.load_state_dict(checkpoint['state_dict'], strict=True)

@@ -43,9 +43,9 @@ phase = {'trainMV': 5,
          'trainRes_2frames': 11, 
          #'trainRes_fullgop': 33,
          'trainAll_2frames': 15,
-         'trainAll_fullgop': 18,
-         'trainAll_RNN_1': 20, 
-         'trainAll_RNN_2': 23}
+         'trainAll_fullgop': 20,
+         'trainAll_RNN_1': 23, 
+         'trainAll_RNN_2': 25}
 
 class CompressesModel(LightningModule):
     """Basic Compress Model"""
@@ -132,7 +132,7 @@ class Pframe(CompressesModel):
     def mc_net_forward(self, ref_frame, coding_frame):
         warped = self.Resampler(ref_frame, coding_frame)
         self.hidden = self.Resampler(self.hidden, coding_frame)
-        self.cell = self.Resampler(self.cell, F.interpolate(coding_frame, scale_factor=0.5, mode='bilinear', align_corners=False)//2)
+        self.cell = self.Resampler(self.cell, F.interpolate(coding_frame, scale_factor=0.5, mode='bilinear', align_corners=False)/2)
 
         if self.MCNet is not None:
             mc_net_input = [ref_frame, warped, self.hidden]
@@ -816,7 +816,7 @@ class Pframe(CompressesModel):
             ])
 
             self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+                                                 transform=transformer, bpg=False)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1115,16 +1115,16 @@ if __name__ == '__main__':
         
         model = Pframe(args, mo_coder, res_coder).cuda()
 
-        #from collections import OrderedDict
-        #new_ckpt = OrderedDict()
-        #coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
-        #                        map_location=(lambda storage, loc: storage))['coder']
+        from collections import OrderedDict
+        new_ckpt = OrderedDict()
+        coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
+                                map_location=(lambda storage, loc: storage))['coder']
 
-        #for k, v in coder_ckpt.items():
-        #    key = 'if_model.' + k
-        #    new_ckpt[key] = v
+        for k, v in coder_ckpt.items():
+            key = 'if_model.' + k
+            new_ckpt[key] = v
 
-        #model.load_state_dict(new_ckpt, strict=False)
+        model.load_state_dict(new_ckpt, strict=False)
 
         #summary(model.Residual)
         #print(model.Residual)
