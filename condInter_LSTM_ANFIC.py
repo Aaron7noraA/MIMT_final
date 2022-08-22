@@ -104,7 +104,7 @@ class Pframe(CompressesModel):
         self.MCNet = Refinement(6 + self.args.hidden_channels, 64)
 
         # Hidden state channel # = 8
-        self.convLSTM = ConvLSTMCell(9, self.args.hidden_channels, kernel_size=(5, 5), bias=True)
+        self.convLSTM = ConvLSTMCell(9, self.args.hidden_channels, kernel_size=(5, 5), stride=2, bias=True)
         self.hidden = None
         self.cell = None
         self.upsampler_h = nn.Sequential(
@@ -504,7 +504,7 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = False and (frame_id_start == 1 and frame_idx < 8 and seq_name in ['Beauty'])
+            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['Beauty', 'Jockey', 'HoneyBee']
             if frame_idx != 0:
                 # reconstruced frame will be next ref_frame
                 #if batch_idx % 100 == 0:

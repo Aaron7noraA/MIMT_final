@@ -489,8 +489,7 @@ class Pframe(CompressesModel):
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
             TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['Kimono1', 'HoneyBee', 'Jockey']
-            if not TO_VISUALIZE:
-                break
+
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
@@ -974,6 +973,7 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
+                                             limit_train_batches=0.5,
                                              num_sanity_val_steps=0,
                                              terminate_on_nan=True)
 

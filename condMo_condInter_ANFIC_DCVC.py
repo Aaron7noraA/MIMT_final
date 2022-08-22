@@ -391,7 +391,7 @@ class Pframe(CompressesModel):
                 
                 reconstructed, likelihood_r, x_2, _, _, _ = self.Residual(coding_frame, output=None, cond_coupling_input=mc,)
 
-                reconstructed = reconstructed.clamp(0, 1)
+                reconstructed = reconstructed#.clamp(0, 1)
                 self.frame_buffer.append(reconstructed.detach())
 
                 likelihoods = likelihood_m + likelihood_r
@@ -404,7 +404,7 @@ class Pframe(CompressesModel):
                 if self.args.ssim:
                     distortion = (1 - distortion)/64
                 
-                loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
+                loss += self.args.lmda * distortion.mean() + rate.mean() #+ 0.01 * self.args.lmda * mc_error.mean()
 
                 if len(self.frame_buffer) == 4:
                     self.frame_buffer.pop(0)
@@ -522,9 +522,9 @@ class Pframe(CompressesModel):
                 
                 if frame_idx <= 2:
                     mse = torch.mean((rec_frame - coding_frame).pow(2))
-                    mc_mse = torch.mean((mc_frame - coding_frame).pow(2))
+                    #mc_mse = torch.mean((mc_frame - coding_frame).pow(2))
                     psnr = get_psnr(mse).cpu().item()
-                    mc_psnr = get_psnr(mc_mse).cpu().item()
+                    #mc_psnr = get_psnr(mc_mse).cpu().item()
 
                     if frame_idx == 2:
                         flow_hat = align.resume(data['pred_flow'])
@@ -544,8 +544,8 @@ class Pframe(CompressesModel):
                     
                     upload_img(ref_frame.cpu().numpy()[0], f'{seq_name}_{epoch}_ref_frame_{frame_idx}.png', grid=False)
                     upload_img(coding_frame.cpu().numpy()[0], f'{seq_name}_{epoch}_gt_frame_{frame_idx}.png', grid=False)
-                    upload_img(mc_frame.cpu().numpy()[0], seq_name + '_{:d}_mc_frame_{:d}_{:.3f}.png'.format(epoch, frame_idx, mc_psnr),
-                               grid=False)
+                    #upload_img(mc_frame.cpu().numpy()[0], seq_name + '_{:d}_mc_frame_{:d}_{:.3f}.png'.format(epoch, frame_idx, mc_psnr),
+                    #           grid=False)
                     upload_img(rec_frame.cpu().numpy()[0], seq_name + '_{:d}_rec_frame_{:d}_{:.3f}.png'.format(epoch, frame_idx, psnr),
                                grid=False)
 
@@ -1031,7 +1031,7 @@ class Pframe(CompressesModel):
             ])
 
             self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+                                                 transform=transformer, bpg=False)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1272,21 +1272,21 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=0,
+                                             num_sanity_val_steps=-1,
                                              terminate_on_nan=True)
         
-        trainer.current_epoch = phase['trainMV'] + 1
+        trainer.current_epoch = phase['trainMC']
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
-        #checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "b0561207a41c4fe7b6c992f535e33afa", "checkpoints", "epoch=79.ckpt"),
-        #                        map_location=(lambda storage, loc: storage))
-        epoch_num = args.restore_exp_epoch
-        if args.restore_exp_key is None:
-            raise ValueError
-        else:  # When prev_exp_key is specified in args
-            checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
-                                                 f"epoch={epoch_num}.ckpt"),
-                                    map_location=(lambda storage, loc: storage))
+        checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "b0561207a41c4fe7b6c992f535e33afa", "checkpoints", "epoch=79.ckpt"),
+                                map_location=(lambda storage, loc: storage))
+        #epoch_num = args.restore_exp_epoch
+        #if args.restore_exp_key is None:
+        #    raise ValueError
+        #else:  # When prev_exp_key is specified in args
+        #    checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
+        #                                         f"epoch={epoch_num}.ckpt"),
+        #                            map_location=(lambda storage, loc: storage))
 
         from collections import OrderedDict
         new_ckpt = OrderedDict()
@@ -1296,7 +1296,7 @@ if __name__ == '__main__':
             new_ckpt[key] = v
         
         for k, v in checkpoint['state_dict'].items():
-            if k.split('.')[0] != 'MCNet': 
+            if k.split('.')[0] != 'MCNet' and k.split('.')[0] != 'Residual': 
                 new_ckpt[k] = v
 
         # Previous coders

@@ -170,7 +170,8 @@ class Pframe(CompressesModel):
                                                                              pred_prior_input=pred_frame,#)
                                                                              visual=visual, figname=visual_prefix+'_motion')
 
-            self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat.detach())
+            self.MWNet.append_flow(flow_hat)
             
             mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
 
@@ -184,7 +185,8 @@ class Pframe(CompressesModel):
             flow = self.MENet(ref_frame, coding_frame)
             flow_hat, likelihood_m = self.Motion(flow)
 
-            self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat.detach())
+            self.MWNet.append_flow(flow_hat)
             
             mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
 
@@ -417,7 +419,7 @@ class Pframe(CompressesModel):
 
             self.MWNet.clear_buffer()
 
-            for frame_idx in range(1, 4):
+            for frame_idx in range(1, 7):
                 frame_count += 1
                 ref_frame = reconstructed
                 
@@ -436,8 +438,9 @@ class Pframe(CompressesModel):
                 reconstructed, likelihood_r, mc_hat, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc,
                                                                              output=mc)
 
-                reconstructed = reconstructed.clamp(0, 1)
-                self.frame_buffer.append(reconstructed.detach())
+                #reconstructed = reconstructed.clamp(0, 1)
+                #self.frame_buffer.append(reconstructed.detach())
+                self.frame_buffer.append(reconstructed)
 
                 likelihoods = likelihood_m + likelihood_r
 
@@ -458,7 +461,7 @@ class Pframe(CompressesModel):
                     pred_frame_error = nn.MSELoss(reduction='none')(data_1['pred_frame'], pred_frame_hat)
 
                     #loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * (mc_error.mean() + pred_frame_error.mean())
-                    loss += self.args.lmda * distortion.mean() + rate.mean()# + 0.01 * self.args.lmda * mc_error.mean()
+                    loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
 
                     pred_frame_error_list.append(pred_frame_error.mean())
 
@@ -732,12 +735,13 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 #and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            #TO_VISUALIZE = frame_id_start == 1
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
                 # reconstruced frame will be next ref_frame
-                if TO_VISUALIZE:
+                if False and TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
                                 exist_ok=True)
                     if frame_idx == 1:
@@ -1129,7 +1133,7 @@ class Pframe(CompressesModel):
             ])
 
             self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+                                                 transform=transformer, bpg=False)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1318,7 +1322,8 @@ if __name__ == '__main__':
         if args.restore == 'resume':
             trainer.current_epoch = epoch_num + 1
         else:
-            trainer.current_epoch = phase['trainAll_2frames']
+            #trainer.current_epoch = phase['trainAll_2frames']
+            trainer.current_epoch = phase['trainAll_fullgop']
         
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']

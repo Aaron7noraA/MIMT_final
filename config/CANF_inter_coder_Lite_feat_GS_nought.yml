@@ -27,4 +27,4 @@ model_params:
     num_cond_frames: 1
     in_channels_predprior: 3
     num_predprior_filters: 72
-    num_cond_features: 6
+    num_cond_features: 3
