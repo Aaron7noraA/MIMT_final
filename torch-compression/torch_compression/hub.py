@@ -9057,6 +9057,7 @@ __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPri
                    "CondANFPredPriorDCVCBackbone": CondANFPredPriorDCVCBackbone,
                    "CondANFPredPriorDCVCBackboneCustom1": CondANFPredPriorDCVCBackboneCustom1,
                    "CondANFPredPriorDCVCBackboneCustom2": CondANFPredPriorDCVCBackboneCustom2,
+                   "AsymmetricCANFPredPrior": AsymmetricCANFPredPrior,
                   }
 
 
