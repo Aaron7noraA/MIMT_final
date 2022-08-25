@@ -23,7 +23,7 @@ from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder, ResBlo
 from torchvision import transforms
 from torchvision.utils import make_grid
 
-from dataloader import VideoDataIframe, VideoTestDataIframe
+from dataloader import VideoData, VideoTestDataIframe
 from flownets import PWCNet, SPyNet
 from SDCNet import SDCNet_3M
 from GridNet import GridNet, Backbone
@@ -1123,7 +1123,6 @@ class Pframe(CompressesModel):
         self.logger.experiment.log_parameters(self.args)
 
         dataset_root = os.getenv('DATAROOT')
-        qp = {256: 37, 512: 32, 1024: 27, 2048: 22, 4096: 22}[self.args.lmda]
 
         if stage == 'fit':
             transformer = transforms.Compose([
@@ -1132,8 +1131,7 @@ class Pframe(CompressesModel):
                 transforms.ToTensor()
             ])
 
-            self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer, bpg=False)
+            self.train_dataset = VideoData(dataset_root + "vimeo_septuplet/", 7, transform=transformer)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1179,7 +1177,7 @@ class Pframe(CompressesModel):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--learning_rate', '-lr', dest='lr', default=1e-4, type=float)
         parser.add_argument('--batch_size', default=16, type=int)
-        parser.add_argument('--lmda', default=2048, choices=[256, 512, 1024, 2048, 4096], type=int)
+        parser.add_argument('--lmda', default=2048, choices=[256, 512, 1024, 2048, 4096, 1440, 720, 360, 180], type=int)
         parser.add_argument('--patch_size', default=256, type=int)
         parser.add_argument('--ssim', action="store_true")
         parser.add_argument('--debug', action="store_true")
@@ -1244,7 +1242,8 @@ if __name__ == '__main__':
     if args.ssim:
         ANFIC_code = {4096: '0619_2320', 2048: '0619_2321', 1024: '0619_2321', 512: '0620_1330', 256: '0620_1330'}[args.lmda]
     else:
-        ANFIC_code = {2048: '0821_0300', 1024: '0530_1212', 512: '0530_1213', 256: '0530_1215'}[args.lmda]
+        ANFIC_code = {2048: '0821_0300', 1024: '0530_1212', 512: '0530_1213', 256: '0530_1215',
+                      1440: '0821_0300', 720: '0530_1212',  360: '0530_1213', 180: '0530_1215'}[args.lmda]
 
     torch.backends.cudnn.deterministic = True
  
