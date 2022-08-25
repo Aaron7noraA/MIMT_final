@@ -333,8 +333,16 @@ class Pframe(CompressesModel):
 
         elif epoch < phase['train_aux']:
             self.requires_grad_(True)
-            if epoch < phase['trainAll_fullgop'] and self.args.restore != 'finetune':
-                frozen_modules = [self.MWNet, self.MENet]
+            #if epoch < phase['trainAll_fullgop'] and self.args.restore != 'finetune':
+            #    frozen_modules = [self.MWNet, self.MENet]
+            #    for module in frozen_modules:
+            #        for param in module.parameters(): 
+            #                self.optimizers().state[param] = {} # remove all state (step, exp_avg, exp_avg_sg)
+
+            #    module.requires_grad_(False)
+            if epoch < phase['trainAll_RNN_1']:
+                self.requires_grad_(False)
+                enable_modules = [self.Residual.hyper_analysis, self.Residual.hyper_synthesis, self.Residual.pred_prior, self.Residual.PA]
                 for module in frozen_modules:
                     for param in module.parameters(): 
                             self.optimizers().state[param] = {} # remove all state (step, exp_avg, exp_avg_sg)
