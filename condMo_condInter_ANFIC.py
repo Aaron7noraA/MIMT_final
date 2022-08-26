@@ -23,7 +23,7 @@ from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder, ResBlo
 from torchvision import transforms
 from torchvision.utils import make_grid
 
-from dataloader import VideoDataIframe, VideoTestDataIframe
+from dataloader import VideoData, VideoTestDataIframe
 from flownets import PWCNet, SPyNet
 from SDCNet import SDCNet_3M
 from GridNet import GridNet, Backbone
@@ -170,7 +170,8 @@ class Pframe(CompressesModel):
                                                                              pred_prior_input=pred_frame,#)
                                                                              visual=visual, figname=visual_prefix+'_motion')
 
-            self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat.detach())
+            self.MWNet.append_flow(flow_hat)
             
             mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
 
@@ -184,7 +185,8 @@ class Pframe(CompressesModel):
             flow = self.MENet(ref_frame, coding_frame)
             flow_hat, likelihood_m = self.Motion(flow)
 
-            self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat.detach())
+            self.MWNet.append_flow(flow_hat)
             
             mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
 
@@ -417,7 +419,7 @@ class Pframe(CompressesModel):
 
             self.MWNet.clear_buffer()
 
-            for frame_idx in range(1, 4):
+            for frame_idx in range(1, 7):
                 frame_count += 1
                 ref_frame = reconstructed
                 
@@ -436,8 +438,9 @@ class Pframe(CompressesModel):
                 reconstructed, likelihood_r, mc_hat, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc,
                                                                              output=mc)
 
-                reconstructed = reconstructed.clamp(0, 1)
-                self.frame_buffer.append(reconstructed.detach())
+                #reconstructed = reconstructed.clamp(0, 1)
+                #self.frame_buffer.append(reconstructed.detach())
+                self.frame_buffer.append(reconstructed)
 
                 likelihoods = likelihood_m + likelihood_r
 
@@ -458,7 +461,7 @@ class Pframe(CompressesModel):
                     pred_frame_error = nn.MSELoss(reduction='none')(data_1['pred_frame'], pred_frame_hat)
 
                     #loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * (mc_error.mean() + pred_frame_error.mean())
-                    loss += self.args.lmda * distortion.mean() + rate.mean()# + 0.01 * self.args.lmda * mc_error.mean()
+                    loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
 
                     pred_frame_error_list.append(pred_frame_error.mean())
 
@@ -732,12 +735,13 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 #and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            #TO_VISUALIZE = frame_id_start == 1
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
                 # reconstruced frame will be next ref_frame
-                if TO_VISUALIZE:
+                if False and TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
                                 exist_ok=True)
                     if frame_idx == 1:
@@ -1119,7 +1123,6 @@ class Pframe(CompressesModel):
         self.logger.experiment.log_parameters(self.args)
 
         dataset_root = os.getenv('DATAROOT')
-        qp = {256: 37, 512: 32, 1024: 27, 2048: 22, 4096: 22}[self.args.lmda]
 
         if stage == 'fit':
             transformer = transforms.Compose([
@@ -1128,15 +1131,14 @@ class Pframe(CompressesModel):
                 transforms.ToTensor()
             ])
 
-            self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+            self.train_dataset = VideoData(dataset_root + "vimeo_septuplet/", 7, transform=transformer)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M', 'C', 'D', 'E'))
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M'), first_gop=True)
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('C', 'D', 'E'))
-            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M', 'K'), GOP=self.args.test_GOP)
+            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B'), GOP=self.args.test_GOP)
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B'), GOP=self.args.test_GOP)
 
         else:
@@ -1175,7 +1177,7 @@ class Pframe(CompressesModel):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--learning_rate', '-lr', dest='lr', default=1e-4, type=float)
         parser.add_argument('--batch_size', default=16, type=int)
-        parser.add_argument('--lmda', default=2048, choices=[256, 512, 1024, 2048, 4096], type=int)
+        parser.add_argument('--lmda', default=2048, choices=[256, 512, 1024, 2048, 4096, 1440, 720, 360, 180], type=int)
         parser.add_argument('--patch_size', default=256, type=int)
         parser.add_argument('--ssim', action="store_true")
         parser.add_argument('--debug', action="store_true")
@@ -1240,7 +1242,8 @@ if __name__ == '__main__':
     if args.ssim:
         ANFIC_code = {4096: '0619_2320', 2048: '0619_2321', 1024: '0619_2321', 512: '0620_1330', 256: '0620_1330'}[args.lmda]
     else:
-        ANFIC_code = {2048: '0821_0300', 1024: '0530_1212', 512: '0530_1213', 256: '0530_1215'}[args.lmda]
+        ANFIC_code = {2048: '0821_0300', 1024: '0530_1212', 512: '0530_1213', 256: '0530_1215',
+                      1440: '0821_0300', 720: '0530_1212',  360: '0530_1213', 180: '0530_1215'}[args.lmda]
 
     torch.backends.cudnn.deterministic = True
  
@@ -1318,7 +1321,8 @@ if __name__ == '__main__':
         if args.restore == 'resume':
             trainer.current_epoch = epoch_num + 1
         else:
-            trainer.current_epoch = phase['trainAll_2frames']
+            #trainer.current_epoch = phase['trainAll_2frames']
+            trainer.current_epoch = phase['trainAll_fullgop']
         
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']

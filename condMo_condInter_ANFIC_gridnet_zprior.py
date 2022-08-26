@@ -162,15 +162,16 @@ class Pframe(CompressesModel):
                                                                              visual=visual, figname=visual_prefix+'_motion')
 
             self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat)
 
             feats1 = [self.Resampler(ref_frame, flow_hat)]
             feats2 = [ref_frame]
             for i, feature_extractor in enumerate(self.feature_extractors):
                 feat = feature_extractor(feats2[i])
-                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True)))
+                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True) * 2**(-i) ))
                 feats2.append(feat)
 
-            feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
+            feats = [torch.cat([feat1, feat2], axis=1) for feat1, feat2 in zip(feats1, feats2)]
             mc_frame, _ = self.MCNet(feats)
 
             likelihoods = likelihood_m
@@ -190,10 +191,11 @@ class Pframe(CompressesModel):
                 feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True) * 2**(-i) ))
                 feats2.append(feat)
 
-            feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
+            feats = [torch.cat([feat1, feat2], axis=1) for feat1, feat2 in zip(feats1, feats2)]
             mc_frame, _ = self.MCNet(feats)
 
             self.MWNet.append_flow(flow_hat.detach())
+            #self.MWNet.append_flow(flow_hat)
 
             likelihoods = likelihood_m
             data = {'likelihood_m': likelihood_m, 'flow': flow, 'flow_hat': flow_hat, 'mc_frame': mc_frame, 'warped_frame': feats1[0]}
@@ -331,13 +333,13 @@ class Pframe(CompressesModel):
 
         elif epoch < phase['train_aux']:
             self.requires_grad_(True)
-            #if epoch < phase['trainAll_fullgop'] and self.args.restore != 'finetune':
-            #    frozen_modules = [self.MWNet, self.MENet]
-            #    for module in frozen_modules:
-            #        for param in module.parameters(): 
-            #                self.optimizers().state[param] = {} # remove all state (step, exp_avg, exp_avg_sg)
+            if epoch < phase['trainAll_fullgop'] and self.args.restore != 'finetune':
+                frozen_modules = [self.MWNet, self.MENet]
+                for module in frozen_modules:
+                    for param in module.parameters(): 
+                            self.optimizers().state[param] = {} # remove all state (step, exp_avg, exp_avg_sg)
 
-            #    module.requires_grad_(False)
+                module.requires_grad_(False)
 
             reconstructed = ref_frame
 
@@ -380,6 +382,7 @@ class Pframe(CompressesModel):
                                                                                      )
 
                 self.frame_buffer.append(reconstructed.detach())
+                #self.frame_buffer.append(reconstructed)
 
                 likelihoods = likelihood_m + likelihood_r
 
@@ -662,6 +665,7 @@ class Pframe(CompressesModel):
         align = trc.util.Alignment()
 
         self.MWNet.clear_buffer()
+        self.prev_latent = None
 
         avg_macs = []
 
@@ -1044,7 +1048,7 @@ class Pframe(CompressesModel):
             ])
 
             self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+                                                 transform=transformer, bpg=False)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1276,7 +1280,7 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=-1,
+                                             num_sanity_val_steps=0,
                                              terminate_on_nan=True)
         
         epoch_num = args.restore_exp_epoch

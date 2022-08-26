@@ -156,7 +156,7 @@ class Pframe(CompressesModel):
             flow_hat, likelihood_m, pred_flow_hat, _, _, _ = self.CondMotion(flow, output=pred_flow, 
                                                                              cond_coupling_input=pred_flow, 
                                                                              pred_prior_input=pred_frame,
-                                                                              visual=visual, figname=visual_prefix+'_motion')
+                                                                             visual=visual, figname=visual_prefix+'_motion')
 
             self.MWNet.append_flow(flow_hat.detach())
 
@@ -417,7 +417,7 @@ class Pframe(CompressesModel):
 
             self.MWNet.clear_buffer()
 
-            for frame_idx in range(1, 6):
+            for frame_idx in range(1, 5):
                 frame_count += 1
                 ref_frame = reconstructed
                 
@@ -724,12 +724,13 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 #and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            #TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 #and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            TO_VISUALIZE = frame_id_start == 1
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
                 # reconstruced frame will be next ref_frame
-                if TO_VISUALIZE:
+                if False and TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
                                 exist_ok=True)
                     rec_frame, likelihoods, m_info, mc_frame, _, _, BDQ, mc_hat\
@@ -1417,22 +1418,23 @@ if __name__ == '__main__':
                                              distributed_backend=db,
                                              logger=comet_logger,
                                              default_root_dir=save_root,
-                                             check_val_every_n_epoch=3,
+                                             check_val_every_n_epoch=1,
                                              num_sanity_val_steps=-1,
                                              terminate_on_nan=True)
     
-        #coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
-        #                        map_location=(lambda storage, loc: storage))['coder']
+        coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
+                                map_location=(lambda storage, loc: storage))['coder']
 
-        #from collections import OrderedDict
-        #new_ckpt = OrderedDict()
+        from collections import OrderedDict
+        new_ckpt = OrderedDict()
 
-        #for k, v in coder_ckpt.items():
-        #    key = 'if_model.' + k
-        #    new_ckpt[key] = v
+        for k, v in coder_ckpt.items():
+            key = 'if_model.' + k
+            new_ckpt[key] = v
 
-     
         model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
+        model.load_state_dict(new_ckpt, strict=True)
+
         #model.load_state_dict(new_ckpt, strict=False)
         #summary(model.Motion)
         #summary(model.CondMotion)

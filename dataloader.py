@@ -184,7 +184,7 @@ class VideoTestDataIframe(torchData):
         assert GOP in [12, 16, 32], ValueError
         self.root = root
         self.lmda = lmda
-        self.qp = {256: 37, 512: 32, 1024: 27, 2048: 22, 4096: 22}[lmda]
+        #self.qp = {256: 37, 512: 32, 1024: 27, 2048: 22, 4096: 22}[lmda]
 
         self.seq_name = []
         seq_len = []

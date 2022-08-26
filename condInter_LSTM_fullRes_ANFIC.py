@@ -498,7 +498,7 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = (frame_id_start == 1 and seq_name in ['Jockey', 'HoneyBee', 'Kimono1', 'BQTerrence', 'BasketballDrive'])
+            TO_VISUALIZE = (frame_id_start == 1 and seq_name in ['Jockey', 'HoneyBee', 'Kimono1', 'BQTerrence'])
             if frame_idx != 0:
                 # reconstruced frame will be next ref_frame
                 #if batch_idx % 100 == 0:
@@ -988,7 +988,7 @@ if __name__ == '__main__':
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
 
-        trainer.current_epoch = epoch_num + 1
+        trainer.current_epoch = phase['trainAll_fullgop'] + 1#epoch_num + 1
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
 
@@ -1088,16 +1088,16 @@ if __name__ == '__main__':
         
         model = Pframe(args, mo_coder, res_coder).cuda()
 
-        #from collections import OrderedDict
-        #new_ckpt = OrderedDict()
-        #coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
-        #                        map_location=(lambda storage, loc: storage))['coder']
+        from collections import OrderedDict
+        new_ckpt = OrderedDict()
+        coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
+                                map_location=(lambda storage, loc: storage))['coder']
 
-        #for k, v in coder_ckpt.items():
-        #    key = 'if_model.' + k
-        #    new_ckpt[key] = v
+        for k, v in coder_ckpt.items():
+            key = 'if_model.' + k
+            new_ckpt[key] = v
 
-        #model.load_state_dict(new_ckpt, strict=False)
+        model.load_state_dict(new_ckpt, strict=False)
 
         #summary(model.Residual)
         #print(model.Residual)

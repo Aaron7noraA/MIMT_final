@@ -9,7 +9,7 @@ model_params:
     gdn_mode: standard
     in_channels: 64
     out_channels: 64
-    kernel_size: 5
+    kernel_size: 3
     num_layers: 2
     init_code: gaussian
     use_DQ: True
@@ -30,3 +30,4 @@ model_params:
     num_cond_features : 64
     out_synthesis : 64
     gs_hidden : 64
+    mc_decode_cond: False
