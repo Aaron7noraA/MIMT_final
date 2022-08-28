@@ -39,8 +39,8 @@ phase = {'trainMV': 15, 'trainMC': 19,
          'trainRes_2frames': 21, 
          'trainAll_2frames': 22, 
          'trainAll_fullgop': 26, 
-         'trainAll_RNN_1': 36, 
-         'trainAll_RNN_2': 39,
+         'trainAll_RNN_1': 27, 
+         'trainAll_RNN_2': 30,
          'train_aux': 100}
 
 
@@ -117,19 +117,19 @@ class Pframe(CompressesModel):
 
         self.MCNet = GridNet([6, 64, 128, 192], [32, 64, 96], 6, 3)
 
-        from collections import OrderedDict
-        new_ckpt = OrderedDict()
-        mc_checkpoint = torch.load(os.path.join(os.getenv('HOME'), 'CANFVC_Plus', 'models', 'gridnet.pth'))
+        #from collections import OrderedDict
+        #new_ckpt = OrderedDict()
+        #mc_checkpoint = torch.load(os.path.join(os.getenv('HOME'), 'CANFVC_Plus', 'models', 'gridnet.pth'))
     
-        for k, v in mc_checkpoint.items():
-            if k.split('.')[3] == 'backbone':
-                continue
-            
-            key = k.split('.')[3:]
-            key = '.'.join(key)
-            new_ckpt[key] = v
+        #for k, v in mc_checkpoint.items():
+        #    if k.split('.')[3] == 'backbone':
+        #        continue
+        #    
+        #    key = k.split('.')[3:]
+        #    key = '.'.join(key)
+        #    new_ckpt[key] = v
 
-        self.MCNet.load_state_dict(new_ckpt, strict=True)
+        #self.MCNet.load_state_dict(new_ckpt, strict=True)
 
         self.Residual = res_coder
         self.output_nought = self.Residual.output_nought
@@ -343,11 +343,8 @@ class Pframe(CompressesModel):
             if epoch < phase['trainAll_RNN_1']:
                 self.requires_grad_(False)
                 enable_modules = [self.Residual.hyper_analysis, self.Residual.hyper_synthesis, self.Residual.pred_prior, self.Residual.PA]
-                for module in frozen_modules:
-                    for param in module.parameters(): 
-                            self.optimizers().state[param] = {} # remove all state (step, exp_avg, exp_avg_sg)
-
-                module.requires_grad_(False)
+                for module in enable_modules:
+                    module.requires_grad_(True)
 
             reconstructed = ref_frame
 
@@ -1299,7 +1296,7 @@ if __name__ == '__main__':
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
 
-        trainer.current_epoch = phase['trainMC']
+        trainer.current_epoch = phase['trainAll_fullgop']
         # Previous coders
         #assert not (args.prev_motion_coder_conf is None)
         #prev_mo_coder_cfg = yaml.safe_load(open(args.prev_motion_coder_conf, 'r'))
