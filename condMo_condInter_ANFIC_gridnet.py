@@ -1386,7 +1386,7 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=0,
+                                             num_sanity_val_steps=-1,
                                              terminate_on_nan=True)
 
         
