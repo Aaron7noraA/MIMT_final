@@ -332,7 +332,7 @@ class Pframe(CompressesModel):
                    }
 
         elif epoch < phase['train_aux']:
-            elf.requires_grad_(True)
+            self.requires_grad_(True)
             if epoch < phase['trainAll_fullgop'] and self.args.restore != 'finetune':
                 frozen_modules = [self.MWNet, self.MENet]
                 for module in frozen_modules:

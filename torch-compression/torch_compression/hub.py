@@ -9021,6 +9021,42 @@ class CondANFPredPriorDCVCBackboneCustom2(CondANFPredPriorDCVCBackbone):
             return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
 
 
+class AsymmetricCANFResBlockPredPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
+    def __init__(self, **kwargs):
+        super(AsymmetricCANFResBlockPredPrior, self).__init__(**kwargs)
+        
+        if not isinstance(kwargs['num_filters'], list):
+            raise ValueError
+
+        in_channels     = kwargs['in_channels']
+        num_features    = kwargs['num_features']
+        kernel_size     = kwargs['kernel_size']
+        use_code        = kwargs['use_code']
+        dec_add         = kwargs['dec_add']
+        init_code       = kwargs['init_code']
+        gdn_mode        = kwargs['gdn_mode']
+        use_attn        = kwargs['use_attn']
+        num_layers      = kwargs['num_layers']
+
+        for i in range(num_layers):
+            self.__delattr__('analysis'+str(i))
+            self.__delattr__('synthesis'+str(i))
+         
+            self.add_module('analysis'+str(i), AugmentedNormalizedResBlockAnalysisTransform(
+                in_channels*(1+num_cond_frames), num_features, num_filters[i*2], kernel_size, 
+                use_code=use_code and init_code != 'zeros', 
+                distribution=init_code, gdn_mode=gdn_mode, 
+                use_attn=use_attn and i == num_layers-1))
+            self.add_module('synthesis'+str(i), AugmentedNormalizedResBlockSynthesisTransform(
+                in_channels, num_features, num_filters[i*2+1], kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1))
+        
+        for name, m in self.named_children():
+            if "ana" in name or "syn" in name:
+                m.name = name
+
+
 __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPriorCoder": GoogleIDFPriorCoder,
                    "GoogleHyperPriorCoder": GoogleHyperPriorCoder, "GoogleHyperPriorCoder2": GoogleHyperPriorCoder2,
                    "GoogleHyperPriorCoderYUV": GoogleHyperPriorCoderYUV,
@@ -9057,7 +9093,7 @@ __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPri
                    "CondANFPredPriorDCVCBackbone": CondANFPredPriorDCVCBackbone,
                    "CondANFPredPriorDCVCBackboneCustom1": CondANFPredPriorDCVCBackboneCustom1,
                    "CondANFPredPriorDCVCBackboneCustom2": CondANFPredPriorDCVCBackboneCustom2,
-                   #"AsymmetricCANFPredPrior": AsymmetricCANFPredPrior,
+                   "AsymmetricCANFResBlockPredPrior": AsymmetricCANFResBlockPredPrior,
                   }
 
 

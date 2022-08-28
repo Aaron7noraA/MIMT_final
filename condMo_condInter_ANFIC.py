@@ -1380,16 +1380,15 @@ if __name__ == '__main__':
                                              terminate_on_nan=True)
         
         epoch_num = args.restore_exp_epoch
-#         if args.restore_exp_key is None:
-#             raise ValueError
-#         else:  # When prev_exp_key is specified in args
-#             checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
-#                                                  f"epoch={epoch_num}.ckpt"),
-#                                     map_location=(lambda storage, loc: storage))
+        if args.restore_exp_key is None:
+            raise ValueError
+        else:  # When prev_exp_key is specified in args
+            checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
+                                                 f"epoch={epoch_num}.ckpt"),
+                                    map_location=(lambda storage, loc: storage))
 
-        checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
-                                             "epoch=83.ckpt"),
-                                map_location=(lambda storage, loc: storage))
+        #checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
+        #                                     "epoch=83.ckpt"), map_location=(lambda storage, loc: storage))
         trainer.current_epoch = phase['trainMV']
         # Previous coders
         #assert not (args.prev_motion_coder_conf is None)
