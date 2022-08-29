@@ -26,7 +26,7 @@ from torchvision.utils import make_grid
 from dataloader import VideoData, VideoTestDataIframe
 from flownets import PWCNet, SPyNet
 from SDCNet import SDCNet_3M
-from GridNet import GridNet, Backbone
+from GridNet import GridNet, ResidualBlock, DownsampleBlock
 from models import Refinement
 from util.psnr import mse2psnr
 from util.sampler import Resampler
@@ -39,11 +39,11 @@ from thop import profile
 plot_flow = PlotFlow().cuda() 
 plot_bitalloc = PlotHeatMap("RB").cuda()
 
-phase = {'trainMV': 15, 
-         'trainMC': 25, 
-         'trainRes_2frames': 27, 
-         'trainAll_2frames': 29, 
-         'trainAll_fullgop': 35, 
+phase = {'trainMV': 10, 
+         'trainMC': 15, 
+         'trainRes_2frames': 23, 
+         'trainAll_2frames': 28, 
+         'trainAll_fullgop': 33, 
          'trainAll_RNN_1': 36, 
          'trainAll_RNN_2': 39,
          'train_aux': 100}
@@ -119,8 +119,8 @@ class Pframe(CompressesModel):
         if self.args.MCNet == 'UNet':
             self.MCNet = Refinement(6, 64, out_channels=3)
         elif self.args.MCNet == 'GridNet':
-            self.FeatNet = Backbone([3, 32, 64, 96])
-            self.MCNet = GridNet([3, 32, 64, 96], [32, 64, 96], 6, 3)
+            self.feature_extractors = nn.ModuleList([ResidualBlock(3, 32), DownsampleBlock(32, 64), DownsampleBlock(64, 96)])
+            self.MCNet = GridNet([6, 64, 128, 192], [32, 64, 96], 6, 3)
 
         self.Residual = res_coder
         self.frame_buffer = list()
@@ -135,17 +135,15 @@ class Pframe(CompressesModel):
             mc_frame = self.MCNet(ref_frame, warped_frame)
 
         elif self.args.MCNet == 'GridNet':
-            feat = self.FeatNet(ref_frame)
-            warped_feat = [warped_frame]
-            
-            for scale, f in enumerate(feat):
-                if scale == 0:
-                    down_flow = flow
-                else:
-                    down_flow = F.interpolate(flow, scale_factor=2 ** (-scale), mode='bilinear', align_corners=False) / (2 ** scale)
-                warped_feat.append(self.Resampler(f, down_flow))
-            
-            mc_frame, mc_feat = self.MCNet(warped_feat)
+            feats1 = [self.Resampler(ref_frame, flow)]
+            feats2 = [ref_frame]
+            for i, feature_extractor in enumerate(self.feature_extractors):
+                feat = feature_extractor(feats2[i])
+                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow, scale_factor=2**(-i), mode='bilinear', align_corners=True) * 2**(-i) ))
+                feats2.append(feat)
+
+            feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
+            mc_frame, _ = self.MCNet(feats)
 
         return mc_frame, warped_frame
 
@@ -419,12 +417,15 @@ class Pframe(CompressesModel):
 
             self.MWNet.clear_buffer()
 
-            for frame_idx in range(1, 7):
+            for frame_idx in range(1, 6):
                 frame_count += 1
                 ref_frame = reconstructed
                 
                 if epoch < phase['trainAll_fullgop']:
                     ref_frame = ref_frame.detach()
+                    if frame_idx != 1:
+                        self.frame_buffer[-1] = self.frame_buffer[-1].detach()
+                        self.MWNet._flow_buffer[-1] = self.MWNet._flow_buffer[-1].detach()
 
                 coding_frame = batch[:, frame_idx]
 
@@ -1376,7 +1377,7 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=-1,
+                                             num_sanity_val_steps=0,
                                              terminate_on_nan=True)
         
         epoch_num = args.restore_exp_epoch
@@ -1389,7 +1390,7 @@ if __name__ == '__main__':
 
         #checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
         #                                     "epoch=83.ckpt"), map_location=(lambda storage, loc: storage))
-        trainer.current_epoch = phase['trainMV']
+        trainer.current_epoch = 0 #phase['trainMV']
         # Previous coders
         #assert not (args.prev_motion_coder_conf is None)
         #prev_mo_coder_cfg = yaml.safe_load(open(args.prev_motion_coder_conf, 'r'))
@@ -1409,21 +1410,17 @@ if __name__ == '__main__':
         #prev_res_coder_arch = trc.__CODER_TYPES__[prev_res_coder_cfg['model_architecture']]
         #prev_res_coder = prev_res_coder_arch(**prev_res_coder_cfg['model_params'])
    
-        gridnet_ckpt = torch.load(os.path.join(save_root, "CANFVC_Plus", "gridnet.pth"),
-                                map_location=(lambda storage, loc: storage))
+        gridnet_ckpt = torch.load(os.path.join(save_root, "CANFVC_Plus", "ac3ee280c88245b298faa83135afb75d", "checkpoints", "epoch=22.ckpt"),
+                                map_location=(lambda storage, loc: storage))['state_dict']
         from collections import OrderedDict
         new_ckpt = OrderedDict()
 
         for k, v in checkpoint['state_dict'].items():
-            if k.split('.')[0] != 'MCNet' and k.split('.')[0] != 'MENet':
+            if k.split('.')[0] == 'MENet' or k.split('.')[0] == 'Motion' or k.split('.')[0] == 'MWNet':
                 new_ckpt[k] = v
         for k, v in gridnet_ckpt.items():
-            if k.split('.')[2] == 'backbone':
-                key = '.'.join(['FeatNet'] + k.split('.')[3:])
-                new_ckpt[key] = v
-            elif k.split('.')[2] == 'synth' and k.split('.')[3] != 'heads':
-                key = '.'.join(['MCNet'] + k.split('.')[3:])
-                new_ckpt[key] = v
+            if k.split('.')[0] == 'feature_extractors' or k.split('.')[0] == 'MCNet':
+                new_ckpt[k] = v
 
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
@@ -1435,6 +1432,7 @@ if __name__ == '__main__':
         model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
         model.load_state_dict(new_ckpt, strict=False)
         
+        #summary(model)
     else:
         trainer = Trainer.from_argparse_args(args,
                                              checkpoint_callback=checkpoint_callback,

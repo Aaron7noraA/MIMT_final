@@ -2,10 +2,7 @@
 model_architecture: AsymmetricCANFResBlockPredPrior
 
 model_params:
-    num_filters: 256
-               - 64
-               - 64
-               - 64
+    num_filters: [256, 64, 64, 64]
     num_features: 96
     num_hyperpriors: 64
     hyper_filters: 64

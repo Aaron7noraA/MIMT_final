@@ -7365,15 +7365,16 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
         if len(num_filters) != kwargs['num_layers']:
             num_filters = [num_filters[0]] * kwargs['num_layers']
         
-        in_channels     = kwargs['in_channels']
-        num_features    = kwargs['num_features']
-        kernel_size     = kwargs['kernel_size']
-        use_code        = kwargs['use_code']
-        dec_add         = kwargs['dec_add']
-        init_code       = kwargs['init_code']
-        gdn_mode        = kwargs['gdn_mode']
-        use_attn        = kwargs['use_attn']
-        num_layers      = kwargs['num_layers']
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        in_channels_predprior = kwargs['in_channels_predprior']
 
         for i in range(num_layers):
             if mc_decode_cond:
@@ -7401,7 +7402,7 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
 
         if mc_decode_cond:
             self.pred_prior = GoogleAnalysisTransform(
-                                                      num_cond_features + 3,
+                                                      in_channels_predprior + 3,
                                                       kwargs['num_features'] * self.conditional_bottleneck.condition_size,
                                                       kwargs['num_predprior_filters'],
                                                       kwargs['kernel_size'],
@@ -7409,7 +7410,7 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
                                                      )
         else:
             self.pred_prior = GoogleAnalysisTransform(
-                                                      num_cond_features,
+                                                      in_channels_predprior,
                                                       kwargs['num_features'] * self.conditional_bottleneck.condition_size,
                                                       kwargs['num_predprior_filters'],
                                                       kwargs['kernel_size'],
@@ -8381,22 +8382,23 @@ class CondANFPredPriorDCVCBackbone(FeatCondAugmentedNormalizedFlowHyperPriorCode
         
         if not isinstance(kwargs['num_filters'], list):
             num_filters = [kwargs['num_filters']]
-        if len(num_filters) != kwargs['num_layers']:
+        if len(num_filters) < kwargs['num_layers']:
             num_filters = [num_filters[0]] * kwargs['num_layers']
         
-        in_channels       = kwargs['in_channels']
-        num_features      = kwargs['num_features']
-        kernel_size       = kwargs['kernel_size']
-        use_code          = kwargs['use_code']
-        dec_add           = kwargs['dec_add']
-        init_code         = kwargs['init_code']
-        gdn_mode          = kwargs['gdn_mode']
-        use_attn          = kwargs['use_attn']
-        num_layers        = kwargs['num_layers']
-        num_cond_features = kwargs['num_cond_features']
-        out_synthesis     = kwargs['out_synthesis']
-        gs_hidden         = kwargs['gs_hidden']
-        mc_decode_cond    = kwargs['mc_decode_cond']
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        num_cond_features     = kwargs['num_cond_features']
+        out_synthesis         = kwargs['out_synthesis']
+        gs_hidden             = kwargs['gs_hidden']
+        mc_decode_cond        = kwargs['mc_decode_cond']
+        in_channels_predprior = kwargs['in_channels_predprior']
 
         for i in range(num_layers):
             if mc_decode_cond:
@@ -8424,7 +8426,7 @@ class CondANFPredPriorDCVCBackbone(FeatCondAugmentedNormalizedFlowHyperPriorCode
 
         if mc_decode_cond:
             self.pred_prior = GoogleAnalysisTransform(
-                                  num_cond_features + 3,
+                                  in_channels_predprior + 3,
                                   kwargs['num_features'] * self.conditional_bottleneck.condition_size,
                                   kwargs['num_predprior_filters'],
                                   kwargs['kernel_size'],
@@ -8432,7 +8434,7 @@ class CondANFPredPriorDCVCBackbone(FeatCondAugmentedNormalizedFlowHyperPriorCode
                               )
         else:
             self.pred_prior = GoogleAnalysisTransform(
-                                  num_cond_features,
+                                  in_channels_predprior,
                                   kwargs['num_features'] * self.conditional_bottleneck.condition_size,
                                   kwargs['num_predprior_filters'],
                                   kwargs['kernel_size'],
@@ -9021,40 +9023,82 @@ class CondANFPredPriorDCVCBackboneCustom2(CondANFPredPriorDCVCBackbone):
             return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
 
 
-class AsymmetricCANFResBlockPredPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
+class AsymmetricCANFResBlockPredPrior(CondANFPredPriorDCVCBackbone):
     def __init__(self, **kwargs):
         super(AsymmetricCANFResBlockPredPrior, self).__init__(**kwargs)
         
         if not isinstance(kwargs['num_filters'], list):
             raise ValueError
-
-        in_channels     = kwargs['in_channels']
-        num_features    = kwargs['num_features']
-        kernel_size     = kwargs['kernel_size']
-        use_code        = kwargs['use_code']
-        dec_add         = kwargs['dec_add']
-        init_code       = kwargs['init_code']
-        gdn_mode        = kwargs['gdn_mode']
-        use_attn        = kwargs['use_attn']
-        num_layers      = kwargs['num_layers']
+        
+        in_channels       = kwargs['in_channels']
+        num_features      = kwargs['num_features']
+        kernel_size       = kwargs['kernel_size']
+        use_code          = kwargs['use_code']
+        dec_add           = kwargs['dec_add']
+        init_code         = kwargs['init_code']
+        gdn_mode          = kwargs['gdn_mode']
+        use_attn          = kwargs['use_attn']
+        num_layers        = kwargs['num_layers']
+        num_cond_features = kwargs['num_cond_features']
+        out_synthesis     = kwargs['out_synthesis']
+        gs_hidden         = kwargs['gs_hidden']
+        mc_decode_cond    = kwargs['mc_decode_cond']
 
         for i in range(num_layers):
-            self.__delattr__('analysis'+str(i))
+            if mc_decode_cond:
+                self.__delattr__('analysis'+str(i))
+                self.add_module('analysis'+str(i), AugmentedNormalizedAnalysisTransformDCVC(
+                    in_channels + num_cond_features + 3, num_features, num_filters[i*2], kernel_size, 
+                    use_code=use_code and i != num_layers-1 and not dec_add, 
+                    distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1
+                ))
+            else:
+                self.__delattr__('analysis'+str(i))
+                self.add_module('analysis'+str(i), AugmentedNormalizedAnalysisTransformDCVC(
+                    in_channels + num_cond_features, num_features, num_filters[i*2], kernel_size, 
+                    use_code=use_code and i != num_layers-1 and not dec_add, 
+                    distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1
+                ))
+
             self.__delattr__('synthesis'+str(i))
-         
-            self.add_module('analysis'+str(i), AugmentedNormalizedResBlockAnalysisTransform(
-                in_channels*(1+num_cond_frames), num_features, num_filters[i*2], kernel_size, 
-                use_code=use_code and init_code != 'zeros', 
-                distribution=init_code, gdn_mode=gdn_mode, 
-                use_attn=use_attn and i == num_layers-1))
-            self.add_module('synthesis'+str(i), AugmentedNormalizedResBlockSynthesisTransform(
+            self.add_module('synthesis'+str(i), CondAugmentedNormalizedSynthesisTransformDCVC(
                 in_channels, num_features, num_filters[i*2+1], kernel_size, 
                 use_code=use_code and i != num_layers-1 and not dec_add, 
-                distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1))
-        
+                distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
+                num_cond_features=num_cond_features, out_synthesis=out_synthesis, gs_hidden=gs_hidden, mc_decode_cond=mc_decode_cond
+            ))
+
+        if mc_decode_cond:
+            self.pred_prior = GoogleAnalysisTransform(
+                                  in_channels_predprior + 3,
+                                  kwargs['num_features'] * self.conditional_bottleneck.condition_size,
+                                  kwargs['num_predprior_filters'],
+                                  kwargs['kernel_size'],
+                                  simplify_gdn=False
+                              )
+        else:
+            self.pred_prior = GoogleAnalysisTransform(
+                                  in_channels_predprior,
+                                  kwargs['num_features'] * self.conditional_bottleneck.condition_size,
+                                  kwargs['num_predprior_filters'],
+                                  kwargs['kernel_size'],
+                                  simplify_gdn=False
+                              )
+            
+        self.hyper_synthesis = GoogleHyperSynthesisTransform(kwargs['num_features'] * self.conditional_bottleneck.condition_size, kwargs['num_features'], kwargs['num_hyperpriors'])
+
+        self.PA = nn.Sequential(
+            nn.Conv2d(kwargs['num_features'] * 12 // 3, kwargs['num_features'] * 10 // 3, 1),
+            nn.LeakyReLU(inplace=True),
+            nn.Conv2d(kwargs['num_features'] * 10 // 3, kwargs['num_features'] * 8 // 3, 1),
+            nn.LeakyReLU(inplace=True),
+            nn.Conv2d(kwargs['num_features'] * 8 // 3, kwargs['num_features'] * 6 // 3, 1),
+        )
+
         for name, m in self.named_children():
-            if "ana" in name or "syn" in name:
+            if "ana" in name  or "syn" in name:
                 m.name = name
+
 
 
 __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPriorCoder": GoogleIDFPriorCoder,
