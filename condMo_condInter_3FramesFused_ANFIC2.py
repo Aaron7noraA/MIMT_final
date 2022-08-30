@@ -1105,9 +1105,9 @@ class Pframe(CompressesModel):
 
         elif stage == 'test':
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M', 'C', 'D', 'E'))
-            #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M'), first_gop=True)
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('C', 'D', 'E'))
-            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B'), GOP=32)
+            #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B'), GOP=32)
+            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('M', 'K'), GOP=32)
 
         else:
             raise NotImplementedError
