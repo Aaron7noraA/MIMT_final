@@ -164,7 +164,7 @@ class Pframe(CompressesModel):
             feats2 = [ref_frame]
             for i, feature_extractor in enumerate(self.feature_extractors):
                 feat = feature_extractor(feats2[i])
-                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True)))
+                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow_hat, scale_factor=2**(-i), mode='bilinear', align_corners=True)* 2**(-i) ))
                 feats2.append(feat)
 
             feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
@@ -725,7 +725,7 @@ class Pframe(CompressesModel):
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
             #TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 #and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
-            TO_VISUALIZE = frame_id_start == 1
+            TO_VISUALIZE = False and frame_id_start == 1
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
