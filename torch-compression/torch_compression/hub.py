@@ -7360,8 +7360,9 @@ class FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS(CondAugmentedNor
     def __init__(self, num_cond_features=3, out_synthesis=16, gs_hidden=16, mc_decode_cond=False, **kwargs):
         super(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS, self).__init__(**kwargs)
         
-        if not isinstance(kwargs['num_filters'], list):
-            num_filters = [kwargs['num_filters']]
+        num_filters = kwargs['num_filters']
+        if not isinstance(num_filters, list):
+            num_filters = [num_filters]
         if len(num_filters) != kwargs['num_layers']:
             num_filters = [num_filters[0]] * kwargs['num_layers']
         
@@ -8379,12 +8380,13 @@ class AugmentedNormalizedSynthesisTransformDCVC(AugmentedNormalizedFlow):
 class CondANFPredPriorDCVCBackbone(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
     def __init__(self, **kwargs):
         super(CondANFPredPriorDCVCBackbone, self).__init__(**kwargs)
-        
-        if not isinstance(kwargs['num_filters'], list):
-            num_filters = [kwargs['num_filters']]
+
+        num_filters = kwargs['num_filters']
+        if not isinstance(num_filters, list):
+            num_filters = [num_filters]
         if len(num_filters) < kwargs['num_layers']:
             num_filters = [num_filters[0]] * kwargs['num_layers']
-        
+
         in_channels           = kwargs['in_channels']
         num_features          = kwargs['num_features']
         kernel_size           = kwargs['kernel_size']
@@ -9029,20 +9031,22 @@ class AsymmetricCANFResBlockPredPrior(CondANFPredPriorDCVCBackbone):
         
         if not isinstance(kwargs['num_filters'], list):
             raise ValueError
-        
-        in_channels       = kwargs['in_channels']
-        num_features      = kwargs['num_features']
-        kernel_size       = kwargs['kernel_size']
-        use_code          = kwargs['use_code']
-        dec_add           = kwargs['dec_add']
-        init_code         = kwargs['init_code']
-        gdn_mode          = kwargs['gdn_mode']
-        use_attn          = kwargs['use_attn']
-        num_layers        = kwargs['num_layers']
-        num_cond_features = kwargs['num_cond_features']
-        out_synthesis     = kwargs['out_synthesis']
-        gs_hidden         = kwargs['gs_hidden']
-        mc_decode_cond    = kwargs['mc_decode_cond']
+
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        num_filters           = kwargs['num_filters']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        num_cond_features     = kwargs['num_cond_features']
+        out_synthesis         = kwargs['out_synthesis']
+        gs_hidden             = kwargs['gs_hidden']
+        mc_decode_cond        = kwargs['mc_decode_cond']
+        in_channels_predprior = kwargs['in_channels_predprior']
 
         for i in range(num_layers):
             if mc_decode_cond:
