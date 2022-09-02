@@ -4364,7 +4364,7 @@ class RNNEntropyModel(nn.Module):
         return x, state
 
 
-#from FrEIA.modules import IRevNetDownsampling
+# from FrEIA.modules import IRevNetDownsampling
 
 class GroupContextHPCoder(GoogleHyperPriorCoder):
     def __init__(self, **kwargs):
