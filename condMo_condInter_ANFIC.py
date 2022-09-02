@@ -763,6 +763,23 @@ class Pframe(CompressesModel):
                                                                                     f'frame_{frame_idx}',
                                                                                ))
                 else:
+                    #if frame_idx != 1:
+                    #    def dummy_inputs(res):
+                    #        inputs = torch.ones(res).cuda()
+                    #        return {
+                    #                'ref_frame': inputs, 
+                    #                'coding_frame': inputs, 
+                    #                'p_order': 0, 
+                    #                'visual': False, 
+                    #                'visual_prefix': '', 
+                    #                'predict': True,
+                    #        }
+                    #    
+                    #    macs, params = get_model_complexity_info(self, tuple(align.align(ref_frame).shape), input_constructor=dummy_inputs)
+                    #    #inputs = torch.ones_like(align.align(ref_frame))
+                    #    #macs, params = profile(self, inputs=(inputs, inputs))
+                    #    print(macs)
+
                     # continue
                     if frame_idx == 1:
                         self.frame_buffer = [align.align(ref_frame)]
