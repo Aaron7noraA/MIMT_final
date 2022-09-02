@@ -23,7 +23,7 @@ from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder, ResBlo
 from torchvision import transforms
 from torchvision.utils import make_grid
 
-from dataloader import VideoDataIframe, VideoTestDataIframe
+from dataloader import VideoData, VideoTestDataIframe
 from flownets import PWCNet, SPyNet
 from SDCNet import SDCNet_3M
 from GridNet import GridNet, Backbone
@@ -205,7 +205,7 @@ class Pframe(CompressesModel):
         
         y1 = decoded[0]
 
-        reconstructed = reconstructed.clamp(0, 1)
+        reconstructed = reconstructed
         return reconstructed, likelihoods, None, m_info['flow_hat'], mc, predicted, intra_info, BDQ, x_2, y1
 
     def training_step(self, batch, batch_idx):
@@ -1049,8 +1049,7 @@ class Pframe(CompressesModel):
                 transforms.ToTensor()
             ])
 
-            self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+            self.train_dataset = VideoData(dataset_root + "vimeo_septuplet/", 7, transform=transformer)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1292,7 +1291,7 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=-1,
+                                             num_sanity_val_steps=0,
                                              terminate_on_nan=True)
         
 

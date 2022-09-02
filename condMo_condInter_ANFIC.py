@@ -1321,8 +1321,8 @@ if __name__ == '__main__':
         if args.restore == 'resume':
             trainer.current_epoch = epoch_num + 1
         else:
-            #trainer.current_epoch = phase['trainAll_2frames']
-            trainer.current_epoch = phase['trainAll_fullgop']
+            trainer.current_epoch = phase['trainAll_2frames']
+            #trainer.current_epoch = phase['trainAll_fullgop']
         
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
@@ -1456,10 +1456,10 @@ if __name__ == '__main__':
      
         model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
         #model.load_state_dict(new_ckpt, strict=False)
-        #summary(model.Motion)
-        #summary(model.CondMotion)
-        #summary(model.Residual)
-        #summary(model)
+    #summary(model.Motion)
+    #summary(model.CondMotion)
+    #summary(model.Residual)
+    #summary(model)
 
     if args.test:
         trainer.test(model)

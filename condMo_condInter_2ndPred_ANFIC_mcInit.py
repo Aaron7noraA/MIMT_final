@@ -23,7 +23,7 @@ from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder, ResBlo
 from torchvision import transforms
 from torchvision.utils import make_grid
 
-from dataloader import VideoDataIframe, VideoTestDataIframe
+from dataloader import VideoData, VideoTestDataIframe
 from flownets import PWCNet, SPyNet
 from SDCNet import SDCNet_3M
 from GridNet import GridNet, Backbone
@@ -40,11 +40,11 @@ plot_flow = PlotFlow().cuda()
 plot_bitalloc = PlotHeatMap("RB").cuda()
 
 phase = {'trainMV': 15, 'trainMC': 20, 
-         'trainRes_2frames': 22, 
-         'trainAll_2frames': 24, 
-         'trainAll_fullgop': 30, 
-         'trainAll_RNN_1': 32, 
-         'trainAll_RNN_2': 35,
+         'trainRes_2frames': 23, 
+         'trainAll_2frames': 28, 
+         'trainAll_fullgop': 33, 
+         'trainAll_RNN_1': 36, 
+         'trainAll_RNN_2': 39,
          'train_aux': 100}
 
 
@@ -169,8 +169,6 @@ class Pframe(CompressesModel):
                                                                              pred_prior_input=pred_frame,
                                                                              visual=visual, figname=visual_prefix+'_motion')
 
-            self.MWNet.append_flow(flow_hat.detach())
-            
             mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
 
             likelihoods = likelihood_m
@@ -183,12 +181,13 @@ class Pframe(CompressesModel):
             flow = self.MENet(ref_frame, coding_frame)
             flow_hat, likelihood_m = self.Motion(flow)
 
-            self.MWNet.append_flow(flow_hat.detach())
             
             mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
 
             likelihoods = likelihood_m
             data = {'likelihood_m': likelihood_m, 'flow': flow, 'flow_hat': flow_hat, 'mc_frame': mc_frame, 'warped_frame': warped_frame}
+
+        self.MWNet.append_flow(flow_hat)
 
         return mc_frame, likelihoods, data
 
@@ -205,7 +204,7 @@ class Pframe(CompressesModel):
         
         y1 = decoded[0]
 
-        reconstructed = reconstructed.clamp(0, 1)
+        reconstructed = reconstructed
         return reconstructed, likelihoods, None, m_info['flow_hat'], mc, predicted, intra_info, BDQ, x_2, y1
 
     def training_step(self, batch, batch_idx):
@@ -337,7 +336,7 @@ class Pframe(CompressesModel):
                 if epoch < phase['trainAll_fullgop']:
                     ref_frame = ref_frame.detach()
 
-                if epoch < phase['trainAll_2frames'] and frame_idx > 2:
+                if epoch < phase['trainAll_2frames'] and frame_idx > 3:
                     break
 
                 coding_frame = batch[:, frame_idx]
@@ -355,8 +354,12 @@ class Pframe(CompressesModel):
                 reconstructed, likelihood_r, x_2, _, _, _, decoded = self.Residual(coding_frame, output=None,
                                                                         cond_coupling_input=[mc, prev_y1], pred_prior_input=mc,)
 
-                reconstructed = reconstructed.clamp(0, 1)
-                self.frame_buffer.append(reconstructed.detach())
+
+                self.frame_buffer.append(reconstructed)
+
+                if epoch < phase['trainAll_fullgop']:
+                    self.frame_buffer[-1] = self.frame_buffer[-1].detach()
+                    self.MWNet._flow_buffer[-1] = self.MWNet._flow_buffer[-1].detach()
 
                 likelihoods = likelihood_m + likelihood_r
 
@@ -1054,8 +1057,7 @@ class Pframe(CompressesModel):
                 transforms.ToTensor()
             ])
 
-            self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
-                                                 transform=transformer)
+            self.train_dataset = VideoData(dataset_root + "vimeo_septuplet/", 7, transform=transformer)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
@@ -1300,33 +1302,33 @@ if __name__ == '__main__':
                                              num_sanity_val_steps=0,
                                              terminate_on_nan=True)
         
-        trainer.current_epoch = phase['trainAll_2frames']
-        #canfvc_ckpt = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
-        #                                     "epoch=83.ckpt"),
-        #                        map_location=(lambda storage, loc: storage))
-        #gs_coder_ckpt = torch.load(os.path.join(save_root, "CANFVC_Plus", "50fc9c2e13ee4ff5b15ff97dad5bb26a", "checkpoints",
-        #                                     "epoch=21.ckpt"),
-        #                        map_location=(lambda storage, loc: storage))
+        trainer.current_epoch = phase['trainMC']
+        canfvc_ckpt = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
+                                             "epoch=83.ckpt"),
+                                map_location=(lambda storage, loc: storage))
+        gs_coder_ckpt = torch.load(os.path.join(save_root, "CANFVC_Plus", "50fc9c2e13ee4ff5b15ff97dad5bb26a", "checkpoints",
+                                             "epoch=21.ckpt"),
+                                map_location=(lambda storage, loc: storage))
 
         epoch_num = args.restore_exp_epoch
-        if args.restore_exp_key is None:
-            raise ValueError
-        else:  # When prev_exp_key is specified in args
-            checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
-                                                 f"epoch={epoch_num}.ckpt"),
-                                    map_location=(lambda storage, loc: storage))
+        #if args.restore_exp_key is None:
+        #    raise ValueError
+        #else:  # When prev_exp_key is specified in args
+        #    checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
+        #                                         f"epoch={epoch_num}.ckpt"),
+        #                            map_location=(lambda storage, loc: storage))
         from collections import OrderedDict
         new_ckpt = OrderedDict()
-        for k, v in checkpoint['state_dict'].items():
-            if k.split('.')[0] != 'Residual' or k.split('.')[1] != 'pred_prior':
-                new_ckpt[k] = v
-
-        #for k, v in canfvc_ckpt['state_dict'].items():
+        #for k, v in checkpoint['state_dict'].items():
         #    if k.split('.')[0] != 'Residual':
         #        new_ckpt[k] = v
-        #for k, v in gs_coder_ckpt['state_dict'].items():
-        #    if k.split('.')[0] == 'Residual':
-        #        new_ckpt[k] = v
+
+        for k, v in canfvc_ckpt['state_dict'].items():
+            if k.split('.')[0] != 'Residual':
+                new_ckpt[k] = v
+        for k, v in gs_coder_ckpt['state_dict'].items():
+            if k.split('.')[0] == 'Residual':
+                new_ckpt[k] = v
  
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
@@ -1355,7 +1357,7 @@ if __name__ == '__main__':
         #prev_res_coder = prev_res_coder_arch(**prev_res_coder_cfg['model_params'])
    
         model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
-        model.load_state_dict(new_ckpt, strict=False)
+        model.load_state_dict(new_ckpt, strict=True)
         
     else:
         trainer = Trainer.from_argparse_args(args,
