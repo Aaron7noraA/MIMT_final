@@ -1242,12 +1242,11 @@ if __name__ == '__main__':
             checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
-
         
         if args.restore == 'resume':
             trainer.current_epoch = epoch_num + 1
         else:
-            trainer.current_epoch = phase['trainAll_fullgop']
+            trainer.current_epoch = phase['trainAll_2frames']
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
 

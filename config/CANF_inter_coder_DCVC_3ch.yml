@@ -9,7 +9,7 @@ model_params:
     gdn_mode: standard
     in_channels: 3
     out_channels: 3
-    kernel_size: 5
+    kernel_size: 3
     num_layers: 2
     init_code: gaussian
     use_DQ: True
