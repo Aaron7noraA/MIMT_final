@@ -1008,6 +1008,9 @@ class Pframe(CompressesModel):
         optimizer.step()
         optimizer.zero_grad()
 
+        for param_group in optimizer.param_groups:
+            print(param_group['lr'])
+
     def compress(self, ref_frame, coding_frame, p_order):
         flow = self.MENet(ref_frame, coding_frame)
 
