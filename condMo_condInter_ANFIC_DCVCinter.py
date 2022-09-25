@@ -39,11 +39,11 @@ plot_bitalloc = PlotHeatMap("RB").cuda()
 
 phase = {'trainMV': 10, 
          'trainMC': 13,
-         'trainRes_2frames': 15, 
-         'trainAll_2frames': 17, 
-         'trainAll_fullgop': 22, 
-         'trainAll_RNN_1': 28, 
-         'trainAll_RNN_2': 30,
+         'trainRes_2frames': 23, 
+         'trainAll_2frames': 33, 
+         'trainAll_fullgop': 38, 
+         'trainAll_RNN_1': 41, 
+         'trainAll_RNN_2': 44,
          'train_aux': 100}
 
 
@@ -311,7 +311,11 @@ class Pframe(CompressesModel):
             self.requires_grad_(True)
             self.MENet.requires_grad_(False)
             self.MWNet.requires_grad_(False)
-            #self.Motion.requires_grad_(False)
+            self.Residual.analysis0.requires_grad_(False)
+            self.Residual.synthesis0.requires_grad_(False)
+            self.Residual.analysis1.requires_grad_(False)
+            self.Residual.synthesis1.requires_grad_(False)
+            self.Residual.DQ.requires_grad_(False)
 
             if epoch < phase['trainRes_2frames']:
                 _phase = 'RES'
@@ -374,6 +378,11 @@ class Pframe(CompressesModel):
             self.requires_grad_(True)
             self.MENet.requires_grad_(False)
             self.MWNet.requires_grad_(False)
+            self.Residual.analysis0.requires_grad_(False)
+            self.Residual.synthesis0.requires_grad_(False)
+            self.Residual.analysis1.requires_grad_(False)
+            self.Residual.synthesis1.requires_grad_(False)
+            self.Residual.DQ.requires_grad_(False)
             if self.args.restore == 'finetune':
                 self.requires_grad_(True)
             
@@ -1285,15 +1294,44 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=0,
+                                             num_sanity_val_steps=1,
                                              terminate_on_nan=True)
+
+        checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
+                                             "epoch=83.ckpt"), map_location=(lambda storage, loc: storage))
         
-        trainer.current_epoch = phase['trainMV'] + 1
+        trainer.current_epoch = phase['trainMC']
+
+        from collections import OrderedDict
+        new_ckpt = OrderedDict()
+
+        for k, v in checkpoint['state_dict'].items():
+            #if k.split('.')[0] == 'MENet' or k.split('.')[0] == 'Motion' or k.split('.')[0] == 'MWNet':
+            if k.split('.')[0] != 'Residual':
+                new_ckpt[k] = v
+        #for k, v in gridnet_ckpt.items():
+        #    if k.split('.')[0] == 'feature_extractors' or k.split('.')[0] == 'MCNet':
+        #        new_ckpt[k] = v
+
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
-        checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "b0561207a41c4fe7b6c992f535e33afa", "checkpoints", "epoch=79.ckpt"),
-                                map_location=(lambda storage, loc: storage))
-        epoch_num = args.restore_exp_epoch
+
+        for k, v in coder_ckpt.items():
+            key = 'if_model.' + k
+            new_ckpt[key] = v
+
+            if k.split('.')[0][:3] == 'ana' or k.split('.')[0][:3] == 'syn' or k.split('.')[0][:2] == 'DQ':
+                key = 'Residual.' + k
+                new_ckpt[key] = v
+
+        model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
+        model.load_state_dict(new_ckpt, strict=False)
+
+        #coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
+        #                        map_location=(lambda storage, loc: storage))['coder']
+        #checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "b0561207a41c4fe7b6c992f535e33afa", "checkpoints", "epoch=79.ckpt"),
+        #                        map_location=(lambda storage, loc: storage))
+        #epoch_num = args.restore_exp_epoch
         #if args.restore_exp_key is None:
         #    raise ValueError
         #else:  # When prev_exp_key is specified in args
@@ -1301,16 +1339,16 @@ if __name__ == '__main__':
         #                                         f"epoch={epoch_num}.ckpt"),
         #                            map_location=(lambda storage, loc: storage))
 
-        from collections import OrderedDict
-        new_ckpt = OrderedDict()
+        #from collections import OrderedDict
+        #new_ckpt = OrderedDict()
 
-        for k, v in coder_ckpt.items():
-            key = 'if_model.' + k
-            new_ckpt[key] = v
-        
-        for k, v in checkpoint['state_dict'].items():
-            if k.split('.')[0] != 'MCNet' and k.split('.')[0] != 'frame_extractor' and k.split('.')[0] != 'Residual': 
-                new_ckpt[k] = v
+        #for k, v in coder_ckpt.items():
+        #    key = 'if_model.' + k
+        #    new_ckpt[key] = v
+        #
+        #for k, v in checkpoint['state_dict'].items():
+        #    if k.split('.')[0] != 'MCNet' and k.split('.')[0] != 'frame_extractor' and k.split('.')[0] != 'Residual': 
+        #        new_ckpt[k] = v
 
         # Previous coders
         #assert not (args.prev_motion_coder_conf is None)

@@ -8,7 +8,6 @@ import comet_ml
 import flowiz as fz
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch_compression as trc
 
 from torchinfo import summary
@@ -23,29 +22,28 @@ from torch_compression.hub import AugmentedNormalizedFlowHyperPriorCoder, ResBlo
 from torchvision import transforms
 from torchvision.utils import make_grid
 
-from dataloader import VideoData, VideoTestDataIframe
+from dataloader import VideoDataIframe, VideoTestDataIframe
 from flownets import PWCNet, SPyNet
 from SDCNet import SDCNet_3M
-from GridNet import GridNet, ResidualBlock, DownsampleBlock
 from models import Refinement
 from util.psnr import mse2psnr
 from util.sampler import Resampler
 from util.ssim import MS_SSIM
 from util.vision import PlotFlow, PlotHeatMap, save_image
 
-from flops_counter.ptflops import get_model_complexity_info
+from ptflops import get_model_complexity_info
 from thop import profile
 
-plot_flow = PlotFlow().cuda() 
+plot_flow = PlotFlow().cuda()
 plot_bitalloc = PlotHeatMap("RB").cuda()
 
 phase = {'trainMV': 10, 
-         'trainMC': 15, 
-         'trainRes_2frames': 25, 
-         'trainAll_2frames': 28, 
-         'trainAll_fullgop': 35, 
-         'trainAll_RNN_1': 37, 
-         'trainAll_RNN_2': 39,
+         'trainMC': 13,
+         'trainRes_2frames': 23, 
+         'trainAll_2frames': 33, 
+         'trainAll_fullgop': 38, 
+         'trainAll_RNN_1': 41, 
+         'trainAll_RNN_2': 44,
          'train_aux': 100}
 
 
@@ -95,7 +93,7 @@ class CompressesModel(LightningModule):
         return torch.stack(aux_loss).mean()
 
 class Pframe(CompressesModel):
-    def __init__(self, args, mo_coder, cond_mo_coder, res_coder):
+    def __init__(self, args, cIframe_coder, mo_coder, cond_mo_coder, res_coder):
         super(Pframe, self).__init__()
         self.args = args
         self.criterion = nn.MSELoss(reduction='none') if not self.args.ssim else MS_SSIM(data_range=1.).cuda()
@@ -103,6 +101,9 @@ class Pframe(CompressesModel):
         self.if_model = AugmentedNormalizedFlowHyperPriorCoder(128, 320, 192, num_layers=2, use_DQ=True, use_code=False,
                                                                use_context=True, condition='GaussianMixtureModel',
                                                                quant_mode='RUN')
+
+        self.cIframe_model = cIframe_coder
+
         if self.args.MENet == 'PWC':
             self.MENet = PWCNet(trainable=False)
         elif self.args.MENet == 'SPy':
@@ -115,35 +116,37 @@ class Pframe(CompressesModel):
         self.CondMotion = cond_mo_coder
 
         self.Resampler = Resampler()
-
+ 
         if self.args.MCNet == 'UNet':
-            self.MCNet = Refinement(6, 64, out_channels=3)
+            self.MCNet = Refinement(6, self.args.hidden_channels, out_channels=self.args.conditioning_channels)
         elif self.args.MCNet == 'GridNet':
-            self.feature_extractors = nn.ModuleList([ResidualBlock(3, 32), DownsampleBlock(32, 64), DownsampleBlock(64, 96)])
-            self.MCNet = GridNet([6, 64, 128, 192], [32, 64, 96], 6, 3)
-
+            self.FeatNet = Backbone([3, 32, 64, 96])
+            self.MCNet = GridNet([3, 32, 64, 96], [32, 64, 96], 6, 3)
+        
         self.Residual = res_coder
         self.frame_buffer = list()
         self.flow_buffer = list()
 
     def load_args(self, args):
         self.args = args
-    
+
     def motion_compensation(self, ref_frame, flow):
         warped_frame = self.Resampler(ref_frame, flow)
         if self.args.MCNet == 'UNet':
             mc_frame = self.MCNet(ref_frame, warped_frame)
 
         elif self.args.MCNet == 'GridNet':
-            feats1 = [self.Resampler(ref_frame, flow)]
-            feats2 = [ref_frame]
-            for i, feature_extractor in enumerate(self.feature_extractors):
-                feat = feature_extractor(feats2[i])
-                feats1.append(self.Resampler(feat, nn.functional.interpolate(flow, scale_factor=2**(-i), mode='bilinear', align_corners=True) * 2**(-i) ))
-                feats2.append(feat)
-
-            feats = [torch.cat([feat1, feat2], axis=1)  for feat1, feat2 in zip(feats1, feats2)]
-            mc_frame, _ = self.MCNet(feats)
+            feat = self.FeatNet(ref_frame)
+            warped_feat = [warped_frame]
+            
+            for scale, f in enumerate(feat):
+                if scale == 0:
+                    down_flow = flow
+                else:
+                    down_flow = F.interpolate(flow, scale_factor=2 ** (-scale), mode='bilinear', align_corners=False) / (2 ** scale)
+                warped_feat.append(self.Resampler(f, down_flow))
+            
+            mc_frame, mc_feat = self.MCNet(warped_feat)
 
         return mc_frame, warped_frame
 
@@ -165,46 +168,44 @@ class Pframe(CompressesModel):
             #flow_hat, likelihood_m = self.CondMotion(flow)
             flow_hat, likelihood_m, pred_flow_hat, _, _, _ = self.CondMotion(flow, output=pred_flow, 
                                                                              cond_coupling_input=pred_flow, 
-                                                                             pred_prior_input=pred_frame,#)
+                                                                             pred_prior_input=pred_frame,
                                                                              visual=visual, figname=visual_prefix+'_motion')
 
-            #self.MWNet.append_flow(flow_hat.detach())
-            self.MWNet.append_flow(flow_hat)
-            
-            mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
+            self.MWNet.append_flow(flow_hat.detach())
+
+            mc, warped_frame = self.motion_compensation(ref_frame, flow_hat)
 
             likelihoods = likelihood_m
             data = {'likelihood_m': likelihood_m, 
-                    'flow': flow, 'flow_hat': flow_hat, 'mc_frame': mc_frame, 
+                    'flow': flow, 'flow_hat': flow_hat, 
                     'pred_frame': pred_frame, 'pred_flow': pred_flow, 
-                    'pred_flow_hat': pred_flow_hat, 'warped_frame': warped_frame}
+                    'pred_flow_hat': pred_flow_hat}
 
         else:
             flow = self.MENet(ref_frame, coding_frame)
             flow_hat, likelihood_m = self.Motion(flow)
 
-            #self.MWNet.append_flow(flow_hat.detach())
-            self.MWNet.append_flow(flow_hat)
-            
-            mc_frame, warped_frame = self.motion_compensation(ref_frame, flow_hat)
+            mc, warped_frame = self.motion_compensation(ref_frame, flow_hat)
+
+            self.MWNet.append_flow(flow_hat.detach())
 
             likelihoods = likelihood_m
-            data = {'likelihood_m': likelihood_m, 'flow': flow, 'flow_hat': flow_hat, 'mc_frame': mc_frame, 'warped_frame': warped_frame}
+            data = {'likelihood_m': likelihood_m, 'flow': flow, 'flow_hat': flow_hat}
 
-        return mc_frame, likelihoods, data
+        return mc, likelihoods, data
 
     def forward(self, ref_frame, coding_frame, p_order=0, visual=False, visual_prefix='', predict=False):
         mc, likelihood_m, m_info = self.motion_forward(ref_frame, coding_frame, visual=visual, visual_prefix=visual_prefix, predict=predict)
 
         predicted, intra_info, likelihood_i = mc, 0, ()
 
-        reconstructed, likelihood_r, mc_hat, _, _, BDQ = self.Residual(coding_frame, output=mc, cond_coupling_input=mc,
+        reconstructed, likelihood_r, x_2, _, _, BDQ = self.Residual(coding_frame, output=None, cond_coupling_input=mc,
                                                                        visual=visual, figname=visual_prefix)
 
         likelihoods = likelihood_m + likelihood_i + likelihood_r
         
         reconstructed = reconstructed.clamp(0, 1)
-        return reconstructed, likelihoods, None, m_info['flow_hat'], mc, predicted, intra_info, BDQ, mc_hat
+        return reconstructed, likelihoods, None, m_info['flow_hat'], mc, predicted, intra_info, BDQ, x_2
 
     def training_step(self, batch, batch_idx):
         epoch = self.current_epoch
@@ -266,11 +267,11 @@ class Pframe(CompressesModel):
             self.MWNet.requires_grad_(False)
             self.Motion.requires_grad_(False)
             self.CondMotion.requires_grad_(False)
-            self.Residual.analysis0.requires_grad_(False)
-            self.Residual.synthesis0.requires_grad_(False)
-            self.Residual.analysis1.requires_grad_(False)
-            self.Residual.synthesis1.requires_grad_(False)
-            self.Residual.DQ.requires_grad_(False)
+            self.cIframe_model.analysis0.requires_grad_(False)
+            self.cIframe_model.synthesis0.requires_grad_(False)
+            self.cIframe_model.analysis1.requires_grad_(False)
+            self.cIframe_model.synthesis1.requires_grad_(False)
+            self.cIframe_model.DQ.requires_grad_(False)
 
             _phase = 'MC'
             if epoch >= phase['trainMC'] - 3:
@@ -333,11 +334,11 @@ class Pframe(CompressesModel):
             self.requires_grad_(True)
             self.MENet.requires_grad_(False)
             self.MWNet.requires_grad_(False)
-            self.Residual.analysis0.requires_grad_(False)
-            self.Residual.synthesis0.requires_grad_(False)
-            self.Residual.analysis1.requires_grad_(False)
-            self.Residual.synthesis1.requires_grad_(False)
-            self.Residual.DQ.requires_grad_(False)
+            self.cIframe_model.analysis0.requires_grad_(False)
+            self.cIframe_model.synthesis0.requires_grad_(False)
+            self.cIframe_model.analysis1.requires_grad_(False)
+            self.cIframe_model.synthesis1.requires_grad_(False)
+            self.cIframe_model.DQ.requires_grad_(False)
 
             if epoch < phase['trainRes_2frames']:
                 _phase = 'RES'
@@ -410,16 +411,14 @@ class Pframe(CompressesModel):
             self.requires_grad_(True)
             self.MENet.requires_grad_(False)
             self.MWNet.requires_grad_(False)
-            self.Residual.analysis0.requires_grad_(False)
-            self.Residual.synthesis0.requires_grad_(False)
-            self.Residual.analysis1.requires_grad_(False)
-            self.Residual.synthesis1.requires_grad_(False)
-            self.Residual.DQ.requires_grad_(False)
-            if self.args.restore == 'finetune':
+
+            if self.args.restore == 'finetune' or  self.args.restore == 'custom':
                 self.requires_grad_(True)
-            #if epoch == 30:
-            #    self.requires_grad_(False)
-            #    self.Residual.DQ.requires_grad_(True)
+            self.cIframe_model.analysis0.requires_grad_(False)
+            self.cIframe_model.synthesis0.requires_grad_(False)
+            self.cIframe_model.analysis1.requires_grad_(False)
+            self.cIframe_model.synthesis1.requires_grad_(False)
+            self.cIframe_model.DQ.requires_grad_(False)
             
             reconstructed = ref_frame
 
@@ -427,9 +426,10 @@ class Pframe(CompressesModel):
             dist_list = []
             rate_list = []
             mc_error_list = []
-            pred_frame_error_list = []
             self.frame_buffer = []
             frame_count = 0
+
+            cIframe_idx = 5
 
             self.MWNet.clear_buffer()
 
@@ -451,36 +451,29 @@ class Pframe(CompressesModel):
                 else:
                     mc, likelihood_m, data_1 = self.motion_forward(ref_frame, coding_frame, predict=True)
 
-                
-                reconstructed, likelihood_r, mc_hat, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc,
-                                                                             output=mc)
-
-                #reconstructed = reconstructed.clamp(0, 1)
-                #self.frame_buffer.append(reconstructed.detach())
-                self.frame_buffer.append(reconstructed)
+                if frame_idx == cIframe_idx:
+                    reconstructed, likelihood_r, mc_hat, _, _, _ = self.cIframe_model(coding_frame, cond_coupling_input=mc, output=None)
+                else:
+                    reconstructed, likelihood_r, mc_hat, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc, output=mc)
 
                 likelihoods = likelihood_m + likelihood_r
 
                 distortion = self.criterion(coding_frame, reconstructed)
 
                 rate = trc.estimate_bpp(likelihoods, input=coding_frame)
+
                 if self.args.ssim:
                     distortion = (1 - distortion)/64
-                    #mc_error = (1 - self.criterion(mc, mc_hat))/64
-                    mc_error = nn.MSELoss(reduction='none')(mc, mc_hat)
+
+                if frame_idx == cIframe_idx:
+                    mc_error = nn.MSELoss(reduction='none')(mc, torch.zeros_like(mc_hat))
                 else:
                     mc_error = nn.MSELoss(reduction='none')(mc, mc_hat)
                 
-                if frame_idx == 1:
-                    loss += self.args.lmda * distortion.mean() + rate.mean()# + 0.01 * self.args.lmda * mc_error.mean()
-                else:
-                    pred_frame_hat = self.Resampler(ref_frame, data_1['pred_flow_hat'])
-                    pred_frame_error = nn.MSELoss(reduction='none')(data_1['pred_frame'], pred_frame_hat)
+                loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
 
-                    #loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * (mc_error.mean() + pred_frame_error.mean())
-                    loss += self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
-
-                    pred_frame_error_list.append(pred_frame_error.mean())
+                reconstructed = reconstructed.clamp(0, 1)
+                self.frame_buffer.append(reconstructed.detach())
 
                 if len(self.frame_buffer) == 4:
                     self.frame_buffer.pop(0)
@@ -494,7 +487,6 @@ class Pframe(CompressesModel):
             distortion = torch.mean(torch.tensor(dist_list))
             rate = torch.mean(torch.tensor(rate_list))
             mc_error = torch.mean(torch.tensor(mc_error_list))
-            pred_frame_error = torch.mean(torch.tensor(pred_frame_error_list))
 
             logs = {
                     'train/loss': loss.item(),
@@ -502,7 +494,6 @@ class Pframe(CompressesModel):
                     'train/PSNR': mse2psnr(distortion.item()), 
                     'train/rate': rate.item(), 
                     'train/mc_error': mc_error.item(),
-                    'train/pred_frame_error': pred_frame_error.item()
                    }
 
         else:
@@ -564,13 +555,11 @@ class Pframe(CompressesModel):
 
         epoch = int(self.current_epoch)
 
-        self.MWNet.clear_buffer()
-
         for frame_idx in range(gop_size):
-            if frame_idx != 0:
+            if int(frame_id + frame_idx) != 1:
                 coding_frame = batch[:, frame_idx]
 
-                if frame_idx == 1:
+                if int(frame_id + frame_idx) == 2:
                     self.frame_buffer = [align.align(ref_frame)]
                     self.flow_buffer = list()
                     mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
@@ -578,11 +567,15 @@ class Pframe(CompressesModel):
                 else:
                     mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
                                                                        align.align(coding_frame), predict=True)
+                
+                if frame_idx == 0:
+                    rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe(align.align(coding_frame), output=None,
+                                                                               cond_coupling_input=mc_frame)
+                else:
+                    rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
+                                                                               cond_coupling_input=mc_frame)
 
-                rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
-                                                                           cond_coupling_input=mc_frame)
-
-                self.frame_buffer.append(rec_frame.detach())
+                self.frame_buffer.append(rec_frame.clamp(0, 1).detach())
 
                 if len(self.frame_buffer) == 4:
                     self.frame_buffer.pop(0)
@@ -591,7 +584,7 @@ class Pframe(CompressesModel):
                 likelihoods = likelihood_m + likelihood_r
                 ref_frame = align.resume(ref_frame).clamp(0, 1)
                 rec_frame = align.resume(rec_frame).clamp(0, 1)
-                # coding_frame = align.resume(batch[:, frame_idx]).clamp(0, 1)
+
                 mc_frame = align.resume(mc_frame).clamp(0, 1)
                 mc_hat = align.resume(mc_hat).clamp(0, 1)
                 BDQ = align.resume(BDQ).clamp(0, 1)
@@ -640,6 +633,8 @@ class Pframe(CompressesModel):
                 m_rate_list.append(m_rate)
 
             else:
+                self.MWNet.clear_buffer()
+
                 with torch.no_grad():
                     rec_frame, likelihoods, _, _, _, _ = self.if_model(align.align(batch[:, frame_idx]))
 
@@ -748,20 +743,21 @@ class Pframe(CompressesModel):
         log_list = []
         align = trc.util.Alignment()
 
-        self.MWNet.clear_buffer()
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
             TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
             #TO_VISUALIZE = frame_id_start == 1
-            if frame_idx != 0:
+            if int(frame_id + frame_idx) != 1:
                 coding_frame = batch[:, frame_idx]
+                
 
+                self.frame_buffer.append(rec_frame.clamp(0, 1).detach())
                 # reconstruced frame will be next ref_frame
                 if False and TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
                                 exist_ok=True)
-                    if frame_idx == 1:
+                    if int(frame_id + frame_idx) == 2:
                         self.frame_buffer = [align.align(ref_frame)]
                         mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
                                                                            align.align(coding_frame), predict=False)
@@ -769,34 +765,46 @@ class Pframe(CompressesModel):
                         mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
                                                                            align.align(coding_frame), predict=True)
 
-                    rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
-                                                                               cond_coupling_input=mc_frame,
-                                                                               visual=True, 
-                                                                               figname=os.path.join(
-                                                                                    self.args.save_dir,
-                                                                                    'visualize_ANFIC',
-                                                                                    f'batch_{batch_idx}',
-                                                                                    f'frame_{frame_idx}',
-                                                                               ))
+                    if frame_idx == 0:
+                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe(align.align(coding_frame), output=None,
+                                                                                   cond_coupling_input=mc_frame,
+                                                                                   visual=True, 
+                                                                                   figname=os.path.join(
+                                                                                        self.args.save_dir,
+                                                                                        'visualize_ANFIC',
+                                                                                        f'batch_{batch_idx}',
+                                                                                        f'frame_{frame_idx}',
+                                                                                   ))
+                    else:
+                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
+                                                                                   cond_coupling_input=mc_frame,
+                                                                                   visual=True, 
+                                                                                   figname=os.path.join(
+                                                                                        self.args.save_dir,
+                                                                                        'visualize_ANFIC',
+                                                                                        f'batch_{batch_idx}',
+                                                                                        f'frame_{frame_idx}',
+                                                                                   ))
+
                 else:
-                    if frame_idx != 1:
-                        def dummy_inputs(res):
-                            inputs = torch.ones(res).cuda()
-                            return {
-                                    'ref_frame': inputs, 
-                                    'coding_frame': inputs, 
-                                    'p_order': 0, 
-                                    'visual': False, 
-                                    'visual_prefix': '', 
-                                    'predict': True,
-                            }
-                        
-                        macs, params = get_model_complexity_info(self, tuple(align.align(ref_frame).shape), input_constructor=dummy_inputs)
-                        print(macs)
-                        print(torch.cuda.memory_summary())
+                    #if frame_idx != 1:
+                    #    def dummy_inputs(res):
+                    #        inputs = torch.ones(res).cuda()
+                    #        return {
+                    #                'ref_frame': inputs, 
+                    #                'coding_frame': inputs, 
+                    #                'p_order': 0, 
+                    #                'visual': False, 
+                    #                'visual_prefix': '', 
+                    #                'predict': True,
+                    #        }
+                    #    
+                    #    macs, params = get_model_complexity_info(self, tuple(align.align(ref_frame).shape), input_constructor=dummy_inputs)
+                    #    print(macs)
+                    #    print(torch.cuda.memory_summary())
 
                     # continue
-                    if frame_idx == 1:
+                    if int(frame_id + frame_idx) == 2:
                         self.frame_buffer = [align.align(ref_frame)]
                         mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
                                                                            align.align(coding_frame), predict=False)
@@ -804,8 +812,12 @@ class Pframe(CompressesModel):
                         mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
                                                                            align.align(coding_frame), predict=True)
 
-                    rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
-                                                                               cond_coupling_input=mc_frame)
+                    if frame_idx == 0:
+                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe(align.align(coding_frame), output=None,
+                                                                                   cond_coupling_input=mc_frame)
+                    else:
+                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
+                                                                                   cond_coupling_input=mc_frame)
 
                 rec_frame = rec_frame.clamp(0, 1)
                 self.frame_buffer.append(rec_frame.detach())
@@ -916,6 +928,8 @@ class Pframe(CompressesModel):
                                  'MCerr-PSNR': mc_err_psnr, 'BDQ-PSNR': BDQ_psnr})
 
             else: 
+                self.MWNet.clear_buffer()
+
                 with torch.no_grad():
                     rec_frame, likelihoods, _, _, _, _ = self.if_model(align.align(batch[:, frame_idx]))
 
@@ -1115,7 +1129,7 @@ class Pframe(CompressesModel):
 
         optimizer.step()
         optimizer.zero_grad()
-    
+
     def compress(self, ref_frame, coding_frame, p_order):
         flow = self.MENet(ref_frame, coding_frame)
 
@@ -1156,6 +1170,7 @@ class Pframe(CompressesModel):
         self.logger.experiment.log_parameters(self.args)
 
         dataset_root = os.getenv('DATAROOT')
+        qp = {256: 37, 512: 32, 1024: 27, 2048: 22, 4096: 22}[self.args.lmda]
 
         if stage == 'fit':
             transformer = transforms.Compose([
@@ -1164,14 +1179,12 @@ class Pframe(CompressesModel):
                 transforms.ToTensor()
             ])
 
-            self.train_dataset = VideoData(dataset_root + "vimeo_septuplet/", 7, transform=transformer)
+            self.train_dataset = VideoDataIframe(dataset_root + "vimeo_septuplet/", 'BPG_QP' + str(qp), 7,
+                                                 transform=transformer, bpg=False)
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
-            #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M', 'C', 'D', 'E'))
-            #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M'), first_gop=True)
-            #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('C', 'D', 'E'))
-            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M'), GOP=self.args.test_GOP)
+            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U'), GOP=self.args.test_GOP)
 
         else:
             raise NotImplementedError
@@ -1207,9 +1220,11 @@ class Pframe(CompressesModel):
         """
         # MODEL specific
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument('--hidden_channels', default=64, type=int)
+        parser.add_argument('--conditioning_channels', default=64, type=int)
         parser.add_argument('--learning_rate', '-lr', dest='lr', default=1e-4, type=float)
         parser.add_argument('--batch_size', default=16, type=int)
-        parser.add_argument('--lmda', default=2048, choices=[256, 512, 1024, 2048, 4096, 1440, 720, 360, 180], type=int)
+        parser.add_argument('--lmda', default=2048, choices=[256, 512, 1024, 2048, 4096], type=int)
         parser.add_argument('--patch_size', default=256, type=int)
         parser.add_argument('--ssim', action="store_true")
         parser.add_argument('--debug', action="store_true")
@@ -1255,6 +1270,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--MENet', type=str, choices=['PWC', 'SPy'], default='PWC')
     parser.add_argument('--MCNet', type=str, choices=['UNet', 'GridNet'], default='UNet')
+    parser.add_argument('--cIframe_coder_conf', type=str, default=None)
     parser.add_argument('--motion_coder_conf', type=str, default=None)
     parser.add_argument('--cond_motion_coder_conf', type=str, default=None)
     parser.add_argument('--residual_coder_conf', type=str, default=None)
@@ -1274,8 +1290,7 @@ if __name__ == '__main__':
     if args.ssim:
         ANFIC_code = {4096: '0619_2320', 2048: '0619_2321', 1024: '0619_2321', 512: '0620_1330', 256: '0620_1330'}[args.lmda]
     else:
-        ANFIC_code = {2048: '0821_0300', 1024: '0530_1212', 512: '0530_1213', 256: '0530_1215',
-                      1440: '0821_0300', 720: '0530_1212',  360: '0530_1213', 180: '0530_1215'}[args.lmda]
+        ANFIC_code = {2048: '0821_0300', 1024: '0530_1212', 512: '0530_1213', 256: '0530_1215'}[args.lmda]
 
     torch.backends.cudnn.deterministic = True
  
@@ -1285,6 +1300,12 @@ if __name__ == '__main__':
     trc.set_default_conv(conv_type=conv_type, deconv_type=deconv_type)
     
     # Config coders
+    assert not (args.cIframe_coder_conf is None)
+    cIframe_coder_cfg = yaml.safe_load(open(args.cIframe_coder_conf, 'r'))
+    assert cIframe_coder_cfg['model_architecture'] in trc.__CODER_TYPES__.keys()
+    cIframe_coder_arch = trc.__CODER_TYPES__[cIframe_coder_cfg['model_architecture']]
+    cIframe_coder = cIframe_coder_arch(**cIframe_coder_cfg['model_params'])
+
     assert not (args.motion_coder_conf is None)
     mo_coder_cfg = yaml.safe_load(open(args.motion_coder_conf, 'r'))
     assert mo_coder_cfg['model_architecture'] in trc.__CODER_TYPES__.keys()
@@ -1330,7 +1351,7 @@ if __name__ == '__main__':
     )
     
     args.save_dir = os.path.join(save_root, project_name, experiment_name + '-' + str(args.lmda))
-
+    
     if args.restore == 'resume' or args.restore == 'finetune':
         trainer = Trainer.from_argparse_args(args,
                                              checkpoint_callback=checkpoint_callback,
@@ -1349,22 +1370,23 @@ if __name__ == '__main__':
             checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
-        
+
         if args.restore == 'resume':
             trainer.current_epoch = epoch_num + 1
         else:
             trainer.current_epoch = phase['trainAll_2frames']
-            #trainer.current_epoch = phase['trainAll_fullgop']
-        
+
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
 
         for k, v in coder_ckpt.items():
             key = 'if_model.' + k
             checkpoint['state_dict'][key] = v
-        
-        model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
+
+
+        model = Pframe(args, cIframe_coder, mo_coder, cond_mo_coder, res_coder).cuda()
         model.load_state_dict(checkpoint['state_dict'], strict=True)
+
     
     elif args.restore == 'load':
         trainer = Trainer.from_argparse_args(args,
@@ -1386,8 +1408,8 @@ if __name__ == '__main__':
                                                  f"epoch={epoch_num}.ckpt"),
                                     map_location=(lambda storage, loc: storage))
 
-        #trainer.current_epoch = phase['trainAll_fullgop'] - 3
-        trainer.current_epoch = phase['train_aux'] 
+        trainer.current_epoch = phase['trainAll_fullgop'] - 2
+        #trainer.current_epoch = phase['train_aux'] 
 
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
@@ -1396,7 +1418,7 @@ if __name__ == '__main__':
             key = 'if_model.' + k
             checkpoint['state_dict'][key] = v
 
-        model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
+        model = Pframe(args, cIframe_coder, mo_coder, cond_mo_coder, res_coder).cuda()
         model.load_state_dict(checkpoint['state_dict'], strict=True)
         #summary(model.Residual.DQ)
     
@@ -1408,51 +1430,22 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=1,
+                                             num_sanity_val_steps=0,
                                              terminate_on_nan=True)
-        
-        epoch_num = args.restore_exp_epoch
-        #if args.restore_exp_key is None:
-        #    raise ValueError
-        #else:  # When prev_exp_key is specified in args
-        #    checkpoint = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
-        #                                         f"epoch={epoch_num}.ckpt"),
-        #                            map_location=(lambda storage, loc: storage))
 
         checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
                                              "epoch=83.ckpt"), map_location=(lambda storage, loc: storage))
-        trainer.current_epoch = phase['trainMC']
-        # Previous coders
-        #assert not (args.prev_motion_coder_conf is None)
-        #prev_mo_coder_cfg = yaml.safe_load(open(args.prev_motion_coder_conf, 'r'))
-        #assert prev_mo_coder_cfg['model_architecture'] in trc.__CODER_TYPES__.keys()
-        #prev_mo_coder_arch = trc.__CODER_TYPES__[prev_mo_coder_cfg['model_architecture']]
-        #prev_mo_coder = prev_mo_coder_arch(**prev_mo_coder_cfg['model_params'])
-        #
-        #assert not (args.prev_cond_motion_coder_conf is None)
-        #prev_cond_mo_coder_cfg = yaml.safe_load(open(args.prev_cond_motion_coder_conf, 'r'))
-        #assert prev_cond_mo_coder_cfg['model_architecture'] in trc.__CODER_TYPES__.keys()
-        #prev_cond_mo_coder_arch = trc.__CODER_TYPES__[prev_cond_mo_coder_cfg['model_architecture']]
-        #prev_cond_mo_coder = prev_cond_mo_coder_arch(**prev_cond_mo_coder_cfg['model_params'])
+        
+        cIframe_ckpt = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "7623054c03a642efbabfcbaa15c6f5f2", "checkpoints",
+                                             "epoch=35.ckpt"), map_location=(lambda storage, loc: storage))
+        
+        trainer.current_epoch = phase['trainAll_2frames']
 
-        #assert not (args.prev_residual_coder_conf is None)
-        #prev_res_coder_cfg = yaml.safe_load(open(args.prev_residual_coder_conf, 'r'))
-        #assert prev_res_coder_cfg['model_architecture'] in trc.__CODER_TYPES__.keys()
-        #prev_res_coder_arch = trc.__CODER_TYPES__[prev_res_coder_cfg['model_architecture']]
-        #prev_res_coder = prev_res_coder_arch(**prev_res_coder_cfg['model_params'])
-   
-        #gridnet_ckpt = torch.load(os.path.join(save_root, "CANFVC_Plus", "ac3ee280c88245b298faa83135afb75d", "checkpoints", "epoch=22.ckpt"),
-        #                        map_location=(lambda storage, loc: storage))['state_dict']
         from collections import OrderedDict
         new_ckpt = OrderedDict()
 
         for k, v in checkpoint['state_dict'].items():
-            #if k.split('.')[0] == 'MENet' or k.split('.')[0] == 'Motion' or k.split('.')[0] == 'MWNet':
-            if k.split('.')[0] != 'Residual':
-                new_ckpt[k] = v
-        #for k, v in gridnet_ckpt.items():
-        #    if k.split('.')[0] == 'feature_extractors' or k.split('.')[0] == 'MCNet':
-        #        new_ckpt[k] = v
+            new_ckpt[k] = v
 
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
@@ -1460,15 +1453,24 @@ if __name__ == '__main__':
         for k, v in coder_ckpt.items():
             key = 'if_model.' + k
             new_ckpt[key] = v
-
             if k.split('.')[0][:3] == 'ana' or k.split('.')[0][:3] == 'syn' or k.split('.')[0][:2] == 'DQ':
-                key = 'Residual.' + k
+                key = 'cIframe_model.' + k
                 new_ckpt[key] = v
 
-        model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
-        model.load_state_dict(new_ckpt, strict=False)
+        for k, v in cIframe_ckpt['state_dict'].items():
+            if k.split('.')[0] == 'Residual':
+                key = '.'.join(['cIframe_model'] + k.split('.')[1:])
+                new_ckpt[key] = v
+
+        model = Pframe(args, cIframe_coder, mo_coder, cond_mo_coder, res_coder).cuda()
+        model.load_state_dict(new_ckpt, strict=True)
         
-        #summary(model)
+        model.cIframe_model.analysis0 = model.if_model.analysis0
+        model.cIframe_model.analysis1 = model.if_model.analysis1
+        model.cIframe_model.syntheysis0 = model.if_model.synthesis0
+        model.cIframe_model.syntheysis1 = model.if_model.synthesis1
+        model.cIframe_model.DQ = model.if_model.DQ
+
     else:
         trainer = Trainer.from_argparse_args(args,
                                              checkpoint_callback=checkpoint_callback,
@@ -1491,13 +1493,13 @@ if __name__ == '__main__':
         #    new_ckpt[key] = v
 
      
-        model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
+        model = Pframe(args, cIframe_coder, mo_coder, cond_mo_coder, res_coder).cuda()
         #model.load_state_dict(new_ckpt, strict=False)
-    #summary(model.Motion)
-    #summary(model.CondMotion)
-    #summary(model.Residual)
-    #summary(model)
-    print(model)
+        #summary(model.Motion)
+        #summary(model.CondMotion)
+        #summary(model.Residual)
+        #summary(model)
+
     if args.test:
         trainer.test(model)
     else:

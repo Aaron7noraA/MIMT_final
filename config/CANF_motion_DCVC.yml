@@ -1,5 +1,5 @@
 ---
-model_architecture: CondANFPredPriorDCVCBackbone
+model_architecture: CondANFHyperPriorCoderPredPriorGS
     
 model_params:
     num_filters: 64
@@ -30,4 +30,3 @@ model_params:
     num_cond_features: 2
     out_synthesis: 32
     gs_hidden: 32
-    mc_decode_cond: False
