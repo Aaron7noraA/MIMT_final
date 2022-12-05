@@ -46,9 +46,11 @@ except ImportError as e:
     import_errors.append(e)
 
 try:
+    import torchvision
     import torchac_backend_cpu
     CPU_SUPPORTED = True
 except ImportError as e:
+    print(e)
     CPU_SUPPORTED = False
     import_errors.append(e)
 

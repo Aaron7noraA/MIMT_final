@@ -38,9 +38,10 @@ plot_flow = PlotFlow().cuda()
 plot_bitalloc = PlotHeatMap("RB").cuda()
 
 phase = {'trainMV': 10, 
-         'trainMC': 15,
-         'trainRes_2frames': 17, 
-         'trainAll_2frames': 19, 
+         'trainMC': 10,
+         'trainRes_2frames_RecOnly': 13,
+         'trainRes_2frames': 16, 
+         'trainAll_2frames': 20, 
          'trainAll_fullgop': 25, 
          'trainAll_RNN_1': 28, 
          'trainAll_RNN_2': 30,
@@ -290,23 +291,22 @@ class Pframe(CompressesModel):
                     'train/pred_frame_error': pred_frame_error_1.mean().item()
                    }
 
-
         elif epoch < phase['trainAll_2frames']:
             self.MWNet.requires_grad_(False)
             self.Motion.requires_grad_(False)
 
             if epoch < phase['trainRes_2frames']:
                 _phase = 'RES'
+                self.Motion.requires_grad_(False)
+                self.CondMotion.requires_grad_(False)
             else:
                 _phase = 'ALL'
+                self.Motion.requires_grad_(True)
+                self.CondMotion.requires_grad_(True)
             # First P-frame
             coding_frame = batch[:, 1]
-            if _phase == 'RES':  # Train res_coder only
-                with torch.no_grad():
-                    mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame, predict=False)
 
-            else:
-                mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame, predict=False)
+            mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame, predict=False)
 
             rec_frame, likelihood_r, x_2, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc_frame,
                                                                      output=None)
@@ -317,8 +317,11 @@ class Pframe(CompressesModel):
             rate = trc.estimate_bpp(likelihoods, input=coding_frame)
             mc_error = nn.MSELoss(reduction='none')(x_2, torch.zeros_like(x_2))
 
-            loss = self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
-
+            if epoch < phase['trainRes_2frames_RecOnly']:
+                #distortion = self.criterion(coding_frame, BDQ)
+                loss = self.args.lmda * distortion.mean()
+            else:
+                loss = self.args.lmda * distortion.mean() + rate.mean() + 0.01 * self.args.lmda * mc_error.mean()
 
             # One the other P-frame
             self.frame_buffer = [rec_frame, batch[:, 1], batch[:, 2]]
@@ -329,11 +332,7 @@ class Pframe(CompressesModel):
             ref_frame = batch[:, 2]
             coding_frame = batch[:, 3]
 
-            if _phase == 'RES':  # Train res_coder only
-                with torch.no_grad():
-                    mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame, predict=True)
-            else:
-                mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame, predict=True)
+            mc_frame, likelihood_m, data = self.motion_forward(ref_frame, coding_frame, predict=True)
 
             rec_frame, likelihood_r, x_2, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc_frame,
                                                                      output=None)
@@ -344,7 +343,12 @@ class Pframe(CompressesModel):
             rate_1 = trc.estimate_bpp(likelihoods_1, input=coding_frame)
             mc_error_1 = nn.MSELoss(reduction='none')(x_2, torch.zeros_like(x_2))
             
-            loss += self.args.lmda * distortion_1.mean() + rate_1.mean() + 0.01 * self.args.lmda * mc_error_1.mean()
+            if epoch < phase['trainRes_2frames_RecOnly']:
+                #distortion_1 = self.criterion(coding_frame, BDQ)
+                loss += self.args.lmda * distortion_1.mean()
+            else:
+                loss += self.args.lmda * distortion_1.mean() + rate_1.mean() + 0.01 * self.args.lmda * mc_error_1.mean()
+
             loss /=2
 
             logs = {
@@ -354,6 +358,7 @@ class Pframe(CompressesModel):
                 'train/PSNR': mse2psnr(np.mean([distortion.mean().item(), distortion_1.mean().item()])),
                 'train/mc_error': np.mean([mc_error.mean().item(), mc_error_1.mean().item()]),
             }
+
 
         elif epoch < phase['train_aux']:
             self.requires_grad_(True)
@@ -660,9 +665,8 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
-            if not TO_VISUALIZE:
-                break
+            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
@@ -1272,7 +1276,8 @@ if __name__ == '__main__':
                                              logger=comet_logger,
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
-                                             num_sanity_val_steps=-1,
+                                             limit_train_batches=0.5,
+                                             num_sanity_val_steps=0,
                                              terminate_on_nan=True)
         
         trainer.current_epoch = phase['trainMC']

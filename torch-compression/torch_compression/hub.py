@@ -68,6 +68,35 @@ class ResidualBlock(nn.Sequential):
         return input + super().forward(input)
 
 
+class ResBlockTCM(nn.Module):
+    def __init__(self, channel, slope=0.01, start_from_relu=True, end_with_relu=False,
+                 bottleneck=False):
+        super().__init__()
+        self.relu = nn.LeakyReLU(negative_slope=slope)
+        if slope < 0.0001:
+            self.relu = nn.ReLU()
+        if bottleneck:
+            self.conv1 = nn.Conv2d(channel, channel // 2, 3, padding=1)
+            self.conv2 = nn.Conv2d(channel // 2, channel, 3, padding=1)
+        else:
+            self.conv1 = nn.Conv2d(channel, channel, 3, padding=1)
+            self.conv2 = nn.Conv2d(channel, channel, 3, padding=1)
+        self.first_layer = self.relu if start_from_relu else nn.Identity()
+        self.last_layer = self.relu if end_with_relu else nn.Identity()
+
+        self.shortcut = nn.Conv2d(channel, channel, 3, padding=1)
+
+    def forward(self, x):
+        out = self.first_layer(x)
+        out = self.conv1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.last_layer(out)
+
+        x = self.shortcut(x)
+        return x + out
+
+
 class ResBlock_LeakyReLU_0_Point_1(nn.Sequential):
 
     def __init__(self, num_filters):
@@ -413,9 +442,9 @@ class AugmentedNormalizedHyperSynthesisTransform(AugmentedNormalizedFlow):
 class DQ_ResBlock(nn.Sequential):
     def __init__(self, num_filters):
         super().__init__(
-            Conv2d(num_filters, num_filters, 3),
+            Conv2d(num_filters, num_filters, 3, padding=1),
             nn.LeakyReLU(0.2, inplace=True),
-            Conv2d(num_filters, num_filters, 3)
+            Conv2d(num_filters, num_filters, 3, padding=1)
         )
 
     def forward(self, input):
@@ -1171,6 +1200,11 @@ class CondAugmentedNormalizedFlowHyperPriorCoder2(HyperPriorCoder):
 
 # ---------------------------------------------- SFTCondANFCoder -------------------------------------------- #
 
+def init_weights(m):
+    if isinstance(m, nn.Conv2d):
+        torch.nn.init.xavier_uniform_(m.weight)
+        m.bias.data.fill_(0.01)
+
 class SFT(nn.Module):
     def __init__(self, in_channels, cond_channels, num_hiddens=64, kernel_size=3):
         super(SFT, self).__init__()
@@ -1187,25 +1221,32 @@ class SFT(nn.Module):
         gamma = self.mlp_gamma(actv)
         beta = self.mlp_beta(actv)
 
-        return input * (1 + gamma) + beta
+        #return input * (1 + gamma) + beta
+        return input * F.softplus(gamma) + beta
+
 
 class SFTResidualBlock(nn.Module):
     """Builds the residual block"""
-
-    def __init__(self, num_filters, cond_channels):
+    def __init__(self, in_channels=64, cond_channels=64, num_hiddens=32, kernel_size=3):
         super(SFTResidualBlock, self).__init__()
-        self.sft = SFT(num_filters, cond_channels, num_hiddens=64, kernel_size=3)
-        self.bottleneck = nn.Sequential(
-            Conv2d(num_filters, num_filters//2, 1, stride=1),
-            nn.ReLU(inplace=True),
-            Conv2d(num_filters//2, num_filters//2, 3, stride=1),
-            nn.ReLU(inplace=True),
-            Conv2d(num_filters//2, num_filters, 1, stride=1)
-        )
+        self.sft1 = SFT(in_channels, cond_channels, num_hiddens, kernel_size)
+        self.conv1 = nn.Sequential(
+                              nn.LeakyReLU(0.01),
+                              Conv2d(in_channels, in_channels, kernel_size=kernel_size)
+                          )
+        self.sft2 = SFT(in_channels, cond_channels, num_hiddens, kernel_size)
+        self.conv2 = nn.Sequential(
+                              nn.LeakyReLU(0.01),
+                              Conv2d(in_channels, in_channels, kernel_size=kernel_size)
+                          )
 
     def forward(self, input, cond):
-        x = self.SFT(input, cond)
-        return input + self.bottleneck(x)
+        x = self.sft1(input, cond)
+        x = self.conv1(x)
+        x = self.sft2(x, cond)
+        x = self.conv2(x)
+        
+        return input + x
 
 
 class SFTAttentionBlock(nn.Module):
@@ -1242,492 +1283,694 @@ class SFTAttentionBlock(nn.Module):
         return input + attention_output * trunk_output
 
 
-class FeatureExtractor(nn.Module):
-    def __init__(self, in_channels, num_filters=64, kernel_size=3):
-        super(FeatureExtractor, self).__init__()
-        self.conv1 = Conv2d(in_channels, num_filters, kernel_size, stride=2)
-        self.conv2 = Conv2d(num_filters, num_filters, kernel_size, stride=2)
+class SFTAnalysisTransform(CondAugmentedNormalizedFlow):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size,
+                 use_code, distribution, gdn_mode,
+                 cond_features=[32, 64, 64, 64, 64],
+                 use_attn=False, integerlize=False):
+        super(SFTAnalysisTransform, self).__init__(
+            use_code=use_code, transpose=False, distribution=distribution, integerlize=integerlize
+        )
+        assert type(cond_features) is list
+        self.cond_features = cond_features
+
+        self.conv1 = Conv2d(in_channels, 32, kernel_size, stride=1)
+        self.norm1 = ANFNorm(32, mode=gdn_mode)
+        self.sft1 = SFT(32, self.cond_features[0], 64, 3)
+        
+        self.conv2 = Conv2d(32, num_filters, kernel_size, stride=2)
+        self.norm2 = ANFNorm(num_filters, mode=gdn_mode)
+        self.sft2 = SFT(num_filters, self.cond_features[1], 64, 3)
+        
         self.conv3 = Conv2d(num_filters, num_filters, kernel_size, stride=2)
+        self.norm3 = ANFNorm(num_filters, mode=gdn_mode)
+        self.sft3 = SFT(num_filters, self.cond_features[2], 64, 3)
+        
         self.conv4 = Conv2d(num_filters, num_filters, kernel_size, stride=2)
+        self.norm4 = ANFNorm(num_filters, mode=gdn_mode)
+        self.sft4 = SFT(num_filters, self.cond_features[3], 64, 3)
+        
+        self.conv5 = Conv2d(num_filters, num_features * (2 if use_code else 1), kernel_size, stride=2)
+        self.sft5_1 = SFTResidualBlock(num_features * (2 if use_code else 1), self.cond_features[4], 64, 3)
+        self.sft5_2 = SFTResidualBlock(num_features * (2 if use_code else 1), self.cond_features[4], 64, 3)
+        
+        self.attn = AttentionBlock(num_features * (2 if use_code else 1), non_local=True) if use_attn else nn.Identity()
+        
+    def net_forward(self, input, conds):
+        assert len(conds) == len(self.cond_features)
+        x = self.norm1(self.conv1(input))
+        x = self.sft1(x, conds[0])
+        
+        x = self.norm2(self.conv2(x))
+        x = self.sft2(x, conds[1])
+        
+        x = self.norm3(self.conv3(x))
+        x = self.sft3(x, conds[2])
+        
+        x = self.norm4(self.conv4(x))
+        x = self.sft4(x, conds[3])
+
+        x = self.conv5(x)
+        x = self.sft5_1(x, conds[4])
+        x = self.sft5_2(x, conds[4])
+        
+        x = self.attn(x)
+
+        return x
+
+
+class SFTSynthesisTransform(CondAugmentedNormalizedFlow):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size,
+                 use_code, distribution, gdn_mode,
+                 cond_features=[32, 64, 64, 64, 64],
+                 use_attn=False, integerlize=False):
+        super(SFTSynthesisTransform, self).__init__(
+            use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize
+        )
+        assert type(cond_features) is list
+        self.cond_features = cond_features
+
+        self.attn = AttentionBlock(num_features, non_local=True) if use_attn else nn.Identity()
+
+        self.sft1_1 = SFTResidualBlock(num_features, self.cond_features[-1], 64, 3)
+        self.sft1_2 = SFTResidualBlock(num_features, self.cond_features[-1], 64, 3)
+
+        self.conv1 = ConvTranspose2d(num_features, num_filters, kernel_size, stride=2)
+        self.norm1 = ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+        
+        self.sft2 = SFT(num_filters, self.cond_features[-2], 64, 3)
+        self.conv2 = ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2)
+        self.norm2 = ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+
+        self.sft3 = SFT(num_filters, self.cond_features[-3], 64, 3)
+        self.conv3 = ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2)
+        self.norm3 = ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+
+        self.sft4 = SFT(num_filters, self.cond_features[-4], 64, 3)
+        self.conv4 = ConvTranspose2d(num_filters, 32, kernel_size, stride=2)
+        self.norm4 = ANFNorm(32, inverse=True, mode=gdn_mode)
+
+        self.sft5 = SFT(32, self.cond_features[-5], 32, 3)
+        self.conv5 = Conv2d(32, in_channels, kernel_size, stride=1)
+                
+    def net_forward(self, input, conds):
+        assert len(conds) == len(self.cond_features)
+        
+        x = self.attn(input)
+
+        x = self.sft1_1(x, conds[-1])
+        x = self.sft1_2(x, conds[-1])
+        x = self.norm1(self.conv1(x))
+        
+        x = self.sft2(x, conds[-2])
+        x = self.norm2(self.conv2(x))
+        
+        x = self.sft3(x, conds[-3])
+        x = self.norm3(self.conv3(x))
+        
+        x = self.sft4(x, conds[-4])
+        x = self.norm4(self.conv4(x))
+        
+        x = self.sft5(x, conds[-5])
+        x = self.conv5(x)
+
+        return x
+
+
+class CondSFT(nn.Module):
+    def __init__(self, in_channels=64, cond_channels=64, num_hiddens=32, kernel_size=3):
+        super(CondSFT, self).__init__()
+        
+        self.mlp_shared = nn.Sequential(
+                              Conv2d(in_channels+cond_channels, num_hiddens, kernel_size=kernel_size),
+                              nn.ReLU()
+                          )
+        self.mlp_gamma = Conv2d(num_hiddens, in_channels, kernel_size=kernel_size)
+        self.mlp_beta = Conv2d(num_hiddens, in_channels, kernel_size=kernel_size)
+        
+        self.apply(init_weights)
+
+    def forward(self, input, cond):
+        b, c, h, w = input.size()
+        
+        cond = torch.cat([input, cond], dim=1)
+
+        actv = self.mlp_shared(cond)
+        gamma = self.mlp_gamma(actv)
+        beta = self.mlp_beta(actv)
+
+        return input * F.softplus(gamma) + beta
+
+
+class CondSFTResidualBlock(SFTResidualBlock):
+    """Builds the residual block"""
+
+    def __init__(self, in_channels=64, cond_channels=64, num_hiddens=32, kernel_size=3):
+        super(CondSFTResidualBlock, self).__init__(in_channels, cond_channels, num_hiddens, kernel_size)
+        self.sft1 = CondSFT(in_channels, cond_channels, num_hiddens, kernel_size)
+        self.sft2 = CondSFT(in_channels, cond_channels, num_hiddens, kernel_size)
+
+
+class CondSFTAnalysisTransform(SFTAnalysisTransform):
+    def __init__(self, **kwargs):
+        super(CondSFTAnalysisTransform, self).__init__(**kwargs)
+        num_filters  = kwargs['num_filters']
+        num_features = kwargs['num_features']
+        use_code     = kwargs['use_code']
+
+        #self.sft1 = CondSFT(32, self.cond_features[0], 64, 3)
+        
+        #self.sft2 = CondSFT(num_filters, self.cond_features[1], 64, 3)
+        
+        #self.sft3 = CondSFT(num_filters, self.cond_features[2], 64, 3)
+        
+        #self.sft4 = CondSFT(num_filters, self.cond_features[3], 64, 3)
+        
+        self.sft5_1 = CondSFTResidualBlock(num_features * (2 if use_code else 1), self.cond_features[4], 64, 3)
+        self.sft5_2 = CondSFTResidualBlock(num_features * (2 if use_code else 1), self.cond_features[4], 64, 3)
+
+
+class CondSFTSynthesisTransform(SFTSynthesisTransform):
+    def __init__(self, **kwargs):
+        super(CondSFTSynthesisTransform, self).__init__(**kwargs)
+        num_filters  = kwargs['num_filters']
+        num_features = kwargs['num_features']
+        use_code     = kwargs['use_code']
+
+        self.sft1_1 = CondSFTResidualBlock(num_features, self.cond_features[-1], 64, 3)
+        self.sft1_2 = CondSFTResidualBlock(num_features, self.cond_features[-1], 64, 3)
+
+        #self.sft2 = CondSFT(num_filters, self.cond_features[-2], 64, 3)
+
+        #self.sft3 = CondSFT(num_filters, self.cond_features[-3], 64, 3)
+
+        #self.sft4 = CondSFT(num_filters, self.cond_features[-4], 64, 3)
+
+        #self.sft5 = CondSFT(32, self.cond_features[-5], 32, 3)
+
+
+class FeatureExtractor(nn.Module):
+    def __init__(self, in_channels, num_filters=[48, 64, 64, 64, 64], kernel_size=3):
+        super(FeatureExtractor, self).__init__()
+        self.conv1 = nn.Sequential(
+                        Conv2d(in_channels, num_filters[0], kernel_size, stride=1),
+                        nn.LeakyReLU(0.01),
+                     )
+        self.conv2 = nn.Sequential(
+                        Conv2d(num_filters[0], num_filters[1], kernel_size, stride=2),
+                        nn.LeakyReLU(0.01),
+                     )
+        self.conv3 = nn.Sequential(
+                        Conv2d(num_filters[1], num_filters[2], kernel_size, stride=2),
+                        nn.LeakyReLU(0.01),
+                     )
+        self.conv4 = nn.Sequential(
+                        Conv2d(num_filters[2], num_filters[3], kernel_size, stride=2),
+                        nn.LeakyReLU(0.01),
+                     )
+        self.conv5 = Conv2d(num_filters[2], num_filters[3], kernel_size, stride=2)
+
+
     def forward(self, input):
         feat_1 = self.conv1(input)
         feat_2 = self.conv2(feat_1)
         feat_3 = self.conv3(feat_2)
         feat_4 = self.conv4(feat_3)
+        feat_5 = self.conv4(feat_4)
         
-        return feat_1, feat_2, feat_3, feat_4
-
-
-class SFTCondAugmentedNormalizedAnalysisTransform(CondAugmentedNormalizedFlow):
-    def __init__(self, in_channels, num_features, num_filters, kernel_size,
-                 use_code, distribution, gdn_mode,
-                 transpose=False, clamp=1, integerlize=False,
-                 use_attn=False,
-                 share_cond_net=True, # Share feature extractor for conditioning with SynthesisTransform
-                 cond_net=None # Should be given when share_cond_net==True
-                ):
-        super(SFTCondAugmentedNormalizedAnalysisTransform, self).__init__(use_code, distribution, gdn_mode, transpose, clamp, integerlize)
-        self.use_attn = use_attn
-
-        self.conv1 = nn.Sequential(
-            Conv2d(in_channels, num_filters, kernel_size, stride=2),
-            ANFNorm(num_filters, mode=gdn_mode),
-        )
-        self.sft1 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
-
-        self.conv2 = nn.Sequential(
-            Conv2d(num_filters, num_filters, kernel_size, stride=2),
-            ANFNorm(num_filters, mode=gdn_mode)
-        )
-        self.sft2 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
-
-        self.conv3 = nn.Sequential(
-            Conv2d(num_filters, num_filters, kernel_size, stride=2),
-            ANFNorm(num_filters, mode=gdn_mode)
-        )
-        self.sft3 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
-
-        self.conv4 = Conv2d(num_filters, num_features *
-                      (2 if use_code else 1), kernel_size, stride=2)
-
-
-        self.attention = SFTAttentionBlock(num_features *
-                           (2 if use_code else 1), cond_channels=num_filters, non_local=True) if self.use_attn \
-                                                                                              else SFT(num_features, num_filters, num_hiddens=64, kernel_size=3)
-    
-        if share_cond_net:
-            assert isinstance(cond_net, nn.Module), "cond_net should be given"
-            self.feat_net = cond_net
-        else:
-            self.feat_net = FeatureExtractor(in_channels, num_filters)
-
-
-    def net_forward(self, input, sft_cond):
-        feat1, feat2, feat3, feat4 = self.feat_net(sft_cond)
-        x = self.conv1(torch.cat([input, sft_cond], dim=1))
-        x = self.sft1(x, feat1)
-        
-        x = self.conv2(x)
-        x = self.sft2(x, feat2)
-        
-        x = self.conv3(x)
-        x = self.sft3(x, feat3)
-
-        x = self.conv4(x)
-        x = self.attention(x, feat4)
-
-        return x
-
-
-class SFTCondAugmentedNormalizedSynthesisTransform(CondAugmentedNormalizedFlow):
-    def __init__(self, out_channels, num_features, num_filters, kernel_size,
-                 use_code, distribution, gdn_mode,
-                 transpose=True, clamp=1, integerlize=False,
-                 use_attn=False,
-                 share_cond_net=True, # Share feature extractor for conditioning with AnalysisTransform
-                 cond_net=None # Should be given when share_cond_net==True
-                ):
-        super(SFTCondAugmentedNormalizedSynthesisTransform, self).__init__(use_code, distribution, gdn_mode, transpose, clamp, integerlize)
-        self.use_attn = use_attn
-
-        self.attention = SFTAttentionBlock(num_features *
-                           (2 if use_code else 1), cond_channels=num_filters, non_local=True) if self.use_attn \
-                                                                                              else SFT(num_features, num_filters, num_hiddens=64, kernel_size=3)
-
-        self.conv1 = nn.Sequential(
-            ConvTranspose2d(num_features, num_filters, kernel_size, stride=2),
-            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
-        )
-        self.sft1 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
-
-        self.conv2 = nn.Sequential(
-            ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2),
-            ANFNorm(num_filters, inverse=True, mode=gdn_mode)
-        )
-        self.sft2 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
-
-        self.conv3 = nn.Sequential(
-            ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2),
-            ANFNorm(num_filters, inverse=True, mode=gdn_mode)
-        )
-        self.sft3 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
-
-        self.conv4 = ConvTranspose2d(num_filters, out_channels *
-                      (2 if use_code else 1), kernel_size, stride=2)
-
-        if share_cond_net:
-            assert isinstance(cond_net, nn.Module), "cond_net should be given"
-            self.feat_net = cond_net
-        else:
-            self.feat_net = FeatureExtractor(in_channels, num_filters)
-
-    def net_forward(self, input, sft_cond):
-        feat1, feat2, feat3, feat4 = self.feat_net(sft_cond)
-        x = self.attention(input, feat4)
-
-        x = self.conv1(x)
-        x = self.sft1(x, feat3)
-        
-        x = self.conv2(x)
-        x = self.sft2(x, feat2)
-        
-        x = self.conv3(x)
-        x = self.sft3(x, feat1)
-
-        x = self.conv4(x)
-
-        return x
-
-
-class SFTCondAugmentedNormalizedFlowHyperPriorCoder(HyperPriorCoder):
-    """SFTCondAugmentedNormalizedFlowHyperPriorCoder"""
-
-    def __init__(self, num_filters, num_features, num_hyperpriors, gdn_mode="standard",
-                 in_channels=3, out_channels=3, kernel_size=5, num_layers=1, # Note: out_channels is useless
-                 init_code='gaussian', use_DQ=False, share_wei=False, use_code=True, dec_add=False,
-                 use_attn=False, use_QE=False,
-                 hyper_filters=192, use_mean=False, use_context=False,
-                 condition='Gaussian', quant_mode='noise',
-                 output_nought=True, # Set False when applying ANFIC for residual coding, which will set output(x_2) as MC frame
-                 num_cond_frames:int =1 # Set 1 when only MC frame is for condition ; >1 whwn multi-refertence frames as conditions
-                 ):
-        super(SFTCondAugmentedNormalizedFlowHyperPriorCoder, self).__init__(
-            num_features, num_hyperpriors, use_mean, False, use_context, condition, quant_mode)
-        self.num_layers = num_layers
-        self.share_wei = share_wei
-        self.output_nought=output_nought
-        assert num_cond_frames > 0, 'number of conditioning frames must >=1'
-
-        print('self.output_nought = ',self.output_nought)
-
-        if not isinstance(num_filters, list):
-            num_filters = [num_filters]
-        if len(num_filters) != num_layers:
-            num_filters = [num_filters[0]] * num_layers
-
-        if not share_wei:
-            self.__delattr__('analysis')
-            self.__delattr__('synthesis')
-
-            for i in range(num_layers):
-                self.add_module('cond_net_'+str(i), FeatureExtractor(in_channels, num_filters[i]))
-
-                self.add_module('analysis'+str(i), SFTCondAugmentedNormalizedAnalysisTransform(
-                    in_channels*(1+num_cond_frames), num_features, num_filters[i], kernel_size, 
-                    use_code=use_code and init_code != 'zeros', 
-                    distribution=init_code, gdn_mode=gdn_mode, 
-                    use_attn=use_attn and i == num_layers-1,
-                    share_cond_net=True,
-                    cond_net=self['cond_net_'+str(i)]))
-
-                self.add_module('synthesis'+str(i), SFTCondAugmentedNormalizedSynthesisTransform(
-                    in_channels, num_features, num_filters[i], kernel_size, 
-                    use_code=use_code and i != num_layers-1 and not dec_add, 
-                    distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
-                    share_cond_net=True,
-                    cond_net=self['cond_net_'+str(i)]))
-
-                if use_QE:
-                    self.add_module(
-                        'QE'+str(i), DeQuantizationModule(in_channels, in_channels, 64, 2))
-        else: 
-            self.analysis = SFTCondAugmentedNormalizedAnalysisTransform(
-                in_channels*(1+num_cond_frames), num_features, num_filters[0], kernel_size, 
-                use_code=use_code, distribution=init_code, 
-                gdn_mode=gdn_mode, use_attn=use_attn,
-                share_cond_net=True,
-                cond_net=self['cond_net_'+str(i)])
-            self.synthesis = SFTCondAugmentedNormalizedSynthesisTransform(
-                in_channels, num_features, num_filters[0], kernel_size, 
-                use_code=use_code, distribution=init_code, 
-                gdn_mode=gdn_mode, use_attn=use_attn,
-                share_cond_net=True,
-                cond_net=self['cond_net_'+str(i)])
-
-            if use_QE:
-                for i in range(num_layers):
-                    self.add_module(
-                        'QE'+str(i), DeQuantizationModule(in_channels, in_channels, 64, 2))
-
-        self.hyper_analysis = GoogleHyperAnalysisTransform(
-            num_features, hyper_filters, num_hyperpriors) if not use_attn else GoogleHyperAnalysisTransform2(num_features, hyper_filters, num_hyperpriors)
-
-        if use_context:
-            self.hyper_synthesis = GoogleHyperSynthesisTransform(
-                num_features*2, hyper_filters, num_hyperpriors) if not use_attn else GoogleHyperSynthesisTransform2(num_features*2, hyper_filters, num_hyperpriors)
-        elif self.use_mean or "Mixture" in condition:
-            self.hyper_synthesis = GoogleHyperSynthesisTransform(
-                num_features*self.conditional_bottleneck.condition_size, hyper_filters, num_hyperpriors) if not use_attn else GoogleHyperSynthesisTransform2(num_features*self.conditional_bottleneck.condition_size, hyper_filters, num_hyperpriors)
-        else:
-            self.hyper_synthesis = GoogleHyperScaleSynthesisTransform(
-                num_features, hyper_filters, num_hyperpriors)
-
-        self.use_QE = use_QE
-
-        for name, m in self.named_children():
-            if "ana" in name or "syn" in name:
-                m.name = name
-
-        if use_DQ:
-            self.DQ = DeQuantizationModule(in_channels, in_channels, 64, 6)
-        else:
-            self.DQ = None
-
-    def __getitem__(self, key):
-        return self.__getattr__(key[:-1] if self.share_wei else key)
-
-    def encode(self, input, code=None, jac=None, visual=False, figname='', cond_coupling_input=None):
-        for i in range(self.num_layers):
-            debug('F', i)
-            # condition 
-            cond = cond_coupling_input
-            _, code, jac = self['analysis'+str(i)](
-                input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
-
-            if i < self.num_layers-1:
-                debug('S', i)
-                input, _, jac = self['synthesis'+str(i)](
-                    input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
-
-            if visual:
-                logger.write(check_range(input, "X"+str(i)))
-                logger.write(check_range(code, "code"+str(i)))
-                logger.write()
-
-                channel_analysis(code, figname+f"_FCA_{i}.png")
-
-        return input, code, jac
-
-    def decode(self, input, code=None, jac=None, rec_code=False, visual=False, figname='', cond_coupling_input=None):
-        for i in range(self.num_layers-1, -1, -1):
-            debug('rF', i)
-            # condition
-            cond = cond_coupling_input
-            input, _, jac = self['synthesis'+str(i)](
-                input, cond, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
-
-            if self.use_QE:
-                BQE = input
-                input = self['QE'+str(i)](input)
-                if visual:
-                    save_image(BQE, figname+f"_BQE_{i}.png")
-                    save_image(input, figname+f"_AQE_{i}.png")
-
-            if i or rec_code or jac is not None:
-                debug('RF', i)
-                # condition
-                cond = cond_coupling_input
-                _, code, jac = self['analysis'+str(i)](
-                    input, cond, code, jac, layer=i, rev=True, visual=visual, figname=figname+"_rev_"+str(i))
-               
-            if visual:
-                logger.write(check_range(input, "X"+str(i)))
-                logger.write(check_range(code, "code"+str(i)))
-                logger.write()
-
-        return input, code, jac
-
-    def entropy_model(self, input, code, jac=False):
-        # Enrtopy coding
-        debug('E')
-
-        hyper_code = self.hyper_analysis(
-            code.abs() if self.use_abs else code)
-
-        z_tilde, z_likelihood = self.entropy_bottleneck(hyper_code)
-        # z_tilde = hyper_code
-
-        condition = self.hyper_synthesis(z_tilde)
-
-        y_tilde, y_likelihood = self.conditional_bottleneck(
-            code, condition=condition)
-        # y_tilde = code
-
-        # Encode distortion
-        Y_error, _, jac = self['synthesis'+str(self.num_layers-1)](
-            input, y_tilde, jac, last_layer=True, layer=self.num_layers-1)
-
-        return Y_error, y_tilde, z_tilde, y_likelihood, z_likelihood
-
-    def compress(self, input, cond_coupling_input=None, return_hat=False, reverse_input=None): #TODO
-        assert not (cond_coupling_input is None), "cond_coupling_input should be specified"
-        
-        code = None
-        jac = None
-        input, features, jac = self.encode(
-            input, code, jac, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
-
-        hyperpriors = self.hyper_analysis(
-            features.abs() if self.use_abs else features)
-
-        side_stream, z_hat = self.entropy_bottleneck.compress(
-            hyperpriors, return_sym=True)
-
-        condition = self.hyper_synthesis(z_hat)
-
-        ret = self.conditional_bottleneck.compress(
-            features, condition=condition, return_sym=return_hat)
-
-        if return_hat:
-            jac = None
-            stream, y_hat = ret
-
-            # Decode
-            if not self.output_nought:
-                assert not (reverse_input is None), "reverse_input should be specified"
-                input = reverse_input
-            else:
-                input = torch.zeros_like(input)
-                
-            x_hat, code, jac = self.decode(
-                input, y_hat, jac, cond_coupling_input=cond_coupling_input)
-            if self.DQ is not None:
-                x_hat = self.DQ(x_hat)
-
-            return x_hat, [stream, side_stream], [hyperpriors.size()]
-        else:
-            stream = ret
-            return [stream, side_stream], [hyperpriors.size()]
-
-    def decompress(self, strings, shape): #TODO
-        stream, side_stream = strings
-        z_shape = shape
-
-        z_hat = self.entropy_bottleneck.decompress(side_stream, z_shape)
-
-        condition = self.hyper_synthesis(z_hat)
-
-        y_hat = self.conditional_bottleneck.decompress(
-            stream, condition.size(), condition=condition)
-
-        reconstructed = self.synthesis(y_hat)
-
-        return reconstructed
-
-    def forward(self, input, code=None, jac=None, rec_code=False, rev_ng=False, 
-                IDQ=False, detach_enc=False, visual=False, figname='',
-                output=None, # Should assign value when self.output_nought==False
-                cond_coupling_input=None # Should assign value
-                                         # When using ANFIC on residual coding, output & cond_coupling_input should both be MC frame
-               ):
-        if not self.output_nought:
-            assert not (output is None), "output should be specified"
-        
-        assert not (cond_coupling_input is None), "cond_coupling_input should be specified"
-
-        # Encode
-        if IDQ:
-            debug("IDQ")
-            input = input.add(torch.rand_like(input).sub_(0.5).div_(255.))
-
-        ori_input = input
-
-        if visual:
-            save_image(input, figname+"_input.png")
-            if not (output is None):
-                save_image(output, figname+"_mc_frame.png")
-            visualizer.set_mean_var(input)
-            visualizer.queue_visual(input, figname+"_ori.png")
-            fft_visual(input, figname+"_ori.png")
-            logger.open(figname+"_stati.txt")
-            logger.write("min\tmedian\tmean\tvar\tmax\n")
-
-        jac = [] if jac else None
-        input, code, jac = self.encode(
-            input, code, jac, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
-
-        # Enrtopy coding
-        debug('E')
-
-        hyper_code = self.hyper_analysis(
-            code.abs() if self.use_abs else code)
-
-        z_tilde, z_likelihood = self.entropy_bottleneck(hyper_code)
-        # z_tilde = hyper_code
-
-        condition = self.hyper_synthesis(z_tilde)
-        y_tilde, y_likelihood = self.conditional_bottleneck(
-            code, condition=condition)
-        # y_tilde = code # No quantize on z2
-
-        # Encode distortion
-        x_2, _, jac = self['synthesis'+str(self.num_layers-1)](
-            input, cond_coupling_input, y_tilde, jac, last_layer=True, layer=self.num_layers-1, visual=visual, figname=figname+"_"+str(self.num_layers-1))
-
-        if visual:
-            visualizer.plot_queue(figname+'_for.png', nrow=input.size(0))
-
-            with torch.no_grad(): # Visualize z likelihood
-                YLL_perC = y_likelihood[0].clamp_min(
-                    1e-9).log2().mean(dim=(1, 2)).neg()
-                fig = plt.figure()
-                check_range(YLL_perC, "YLL")
-                max_idx = YLL_perC.max(0)[1]
-                plt.plot(YLL_perC.data.cpu(),
-                         label="maxC="+str(max_idx.item()))
-                plt.legend()
-
-                plt.savefig(figname+"_YLL.png")
-                plt.close(fig)
-            
-            # Print feature ; code: z2, no quant ; y_tilde: \hat z2
-            #     nrow = 8
-            #     save_image(code.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
-            #         1), figname+"_feature.png", nrow=nrow)
-            #     save_image(max_norm(code).add(0.5).flatten(0, 1).unsqueeze(
-            #         1), figname+"_feature_norm.png", nrow=nrow)
-            #     save_image(y_tilde.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
-            #         1), figname+"_quant.png", nrow=nrow)
-            #     save_image(max_norm(y_tilde).add(0.5).flatten(0, 1).unsqueeze(
-            #         1), figname+"_quant_norm.png", nrow=nrow)
-
-            #logger.write(check_range(Y_error, "X"+str(self.num_layers-1)))
-            logger.write(check_range(x_2, "X"+str(self.num_layers-1)))
-            logger.write(check_range(code, "code"+str(self.num_layers-1)))
-            logger.write()
-
-        if self.entropy_bottleneck.quant_mode == "SGA" and self.training:
-            tau = self.entropy_bottleneck.SGA.tau.item()*0.01
-            #input, code, hyper_code = Y_error*tau, y_tilde, z_tilde
-            input, code, hyper_code = x_2*tau, y_tilde, z_tilde
-        else:
-            #input, code, hyper_code = torch.zeros_like(input), y_tilde, z_tilde
-            #input, code, hyper_code = x_2, y_tilde, z_tilde # x_2 directly backward
-            input, code, hyper_code = output, y_tilde, z_tilde # Correct setting ; MC frame as x_2 when decoding
-
-        # input = Y_error
-        #debug(Y_error.shape, code.shape, hyper_code.shape)
-        debug(x_2.shape, code.shape, hyper_code.shape)
-
-        if visual:
-            logger.write(check_range(input, "X"+str(self.num_layers-1)))
-            logger.write(check_range(code, "code"+str(self.num_layers-1)))
-            logger.write()
-
-        # Decode
-        input, code, jac = self.decode(
-            input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
-
-        if visual:
-            visualizer.plot_queue(figname+'_rev.png', nrow=input.size(0))
-            logger.close()
-
-        # Quality enhancement
-        if self.DQ is not None:
-            debug("DQ")
-            BDQ = input
-            input = self.DQ(input)
-            if visual:
-                save_image(x_2, figname+"_x_2.png")
-                save_image(BDQ, figname+"_BDQ.png")
-                save_image(input, figname+"_ADQ.png")
-        else:
-            BDQ = None
-
-        debug('END\n')
-
-        return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
-
+        return feat_1, feat_2, feat_3, feat_4, feat_5
+
+
+# class SFTCondAugmentedNormalizedAnalysisTransform(CondAugmentedNormalizedFlow):
+#    def __init__(self, in_channels, num_features, num_filters, kernel_size,
+#                 use_code, distribution, gdn_mode,
+#                 transpose=False, clamp=1, integerlize=False,
+#                 use_attn=False,
+#                 share_cond_net=True, # Share feature extractor for conditioning with SynthesisTransform
+#                 cond_net=None # Should be given when share_cond_net==True
+#                ):
+#        super(SFTCondAugmentedNormalizedAnalysisTransform, self).__init__(use_code, distribution, gdn_mode, transpose, clamp, integerlize)
+#        self.use_attn = use_attn
+#
+#        self.conv1 = nn.Sequential(
+#            Conv2d(in_channels, num_filters, kernel_size, stride=2),
+#            ANFNorm(num_filters, mode=gdn_mode),
+#        )
+#        self.sft1 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
+#
+#        self.conv2 = nn.Sequential(
+#            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+#            ANFNorm(num_filters, mode=gdn_mode)
+#        )
+#        self.sft2 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
+#
+#        self.conv3 = nn.Sequential(
+#            Conv2d(num_filters, num_filters, kernel_size, stride=2),
+#            ANFNorm(num_filters, mode=gdn_mode)
+#        )
+#        self.sft3 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
+#
+#        self.conv4 = Conv2d(num_filters, num_features *
+#                      (2 if use_code else 1), kernel_size, stride=2)
+#
+#
+#        self.attention = SFTAttentionBlock(num_features *
+#                           (2 if use_code else 1), cond_channels=num_filters, non_local=True) if self.use_attn \
+#                                                                                              else SFT(num_features, num_filters, num_hiddens=64, kernel_size=3)
+#    
+#        if share_cond_net:
+#            assert isinstance(cond_net, nn.Module), "cond_net should be given"
+#            self.feat_net = cond_net
+#        else:
+#            self.feat_net = FeatureExtractor(in_channels, num_filters)
+#
+#
+#    def net_forward(self, input, sft_cond):
+#        feat1, feat2, feat3, feat4 = self.feat_net(sft_cond)
+#        x = self.conv1(torch.cat([input, sft_cond], dim=1))
+#        x = self.sft1(x, feat1)
+#        
+#        x = self.conv2(x)
+#        x = self.sft2(x, feat2)
+#        
+#        x = self.conv3(x)
+#        x = self.sft3(x, feat3)
+#
+#        x = self.conv4(x)
+#        x = self.attention(x, feat4)
+#
+#        return x
+#
+#
+# class SFTCondAugmentedNormalizedSynthesisTransform(CondAugmentedNormalizedFlow):
+#    def __init__(self, out_channels, num_features, num_filters, kernel_size,
+#                 use_code, distribution, gdn_mode,
+#                 transpose=True, clamp=1, integerlize=False,
+#                 use_attn=False,
+#                 share_cond_net=True, # Share feature extractor for conditioning with AnalysisTransform
+#                 cond_net=None # Should be given when share_cond_net==True
+#                ):
+#        super(SFTCondAugmentedNormalizedSynthesisTransform, self).__init__(use_code, distribution, gdn_mode, transpose, clamp, integerlize)
+#        self.use_attn = use_attn
+#
+#        self.attention = SFTAttentionBlock(num_features *
+#                           (2 if use_code else 1), cond_channels=num_filters, non_local=True) if self.use_attn \
+#                                                                                              else SFT(num_features, num_filters, num_hiddens=64, kernel_size=3)
+#
+#        self.conv1 = nn.Sequential(
+#            ConvTranspose2d(num_features, num_filters, kernel_size, stride=2),
+#            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+#        )
+#        self.sft1 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
+#
+#        self.conv2 = nn.Sequential(
+#            ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2),
+#            ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+#        )
+#        self.sft2 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
+#
+#        self.conv3 = nn.Sequential(
+#            ConvTranspose2d(num_filters, num_filters, kernel_size, stride=2),
+#            ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+#        )
+#        self.sft3 = SFT(num_filters, num_filters, num_hiddens=64, kernel_size=3)
+#
+#        self.conv4 = ConvTranspose2d(num_filters, out_channels *
+#                      (2 if use_code else 1), kernel_size, stride=2)
+#
+#        if share_cond_net:
+#            assert isinstance(cond_net, nn.Module), "cond_net should be given"
+#            self.feat_net = cond_net
+#        else:
+#            self.feat_net = FeatureExtractor(in_channels, num_filters)
+#
+#    def net_forward(self, input, sft_cond):
+#        feat1, feat2, feat3, feat4 = self.feat_net(sft_cond)
+#        x = self.attention(input, feat4)
+#
+#        x = self.conv1(x)
+#        x = self.sft1(x, feat3)
+#        
+#        x = self.conv2(x)
+#        x = self.sft2(x, feat2)
+#        
+#        x = self.conv3(x)
+#        x = self.sft3(x, feat1)
+#
+#        x = self.conv4(x)
+#
+#        return x
+#
+#
+# class SFTCondAugmentedNormalizedFlowHyperPriorCoder(HyperPriorCoder):
+#    """SFTCondAugmentedNormalizedFlowHyperPriorCoder"""
+#
+#    def __init__(self, num_filters, num_features, num_hyperpriors, gdn_mode="standard",
+#                 in_channels=3, out_channels=3, kernel_size=5, num_layers=1, # Note: out_channels is useless
+#                 init_code='gaussian', use_DQ=False, share_wei=False, use_code=True, dec_add=False,
+#                 use_attn=False, use_QE=False,
+#                 hyper_filters=192, use_mean=False, use_context=False,
+#                 condition='Gaussian', quant_mode='noise',
+#                 output_nought=True, # Set False when applying ANFIC for residual coding, which will set output(x_2) as MC frame
+#                 num_cond_frames:int =1 # Set 1 when only MC frame is for condition ; >1 whwn multi-refertence frames as conditions
+#                 ):
+#        super(SFTCondAugmentedNormalizedFlowHyperPriorCoder, self).__init__(
+#            num_features, num_hyperpriors, use_mean, False, use_context, condition, quant_mode)
+#        self.num_layers = num_layers
+#        self.share_wei = share_wei
+#        self.output_nought=output_nought
+#        assert num_cond_frames > 0, 'number of conditioning frames must >=1'
+#
+#        print('self.output_nought = ',self.output_nought)
+#
+#        if not isinstance(num_filters, list):
+#            num_filters = [num_filters]
+#        if len(num_filters) != num_layers:
+#            num_filters = [num_filters[0]] * num_layers
+#
+#        if not share_wei:
+#            self.__delattr__('analysis')
+#            self.__delattr__('synthesis')
+#
+#            for i in range(num_layers):
+#                self.add_module('cond_net_'+str(i), FeatureExtractor(in_channels, num_filters[i]))
+#
+#                self.add_module('analysis'+str(i), SFTCondAugmentedNormalizedAnalysisTransform(
+#                    in_channels*(1+num_cond_frames), num_features, num_filters[i], kernel_size, 
+#                    use_code=use_code and init_code != 'zeros', 
+#                    distribution=init_code, gdn_mode=gdn_mode, 
+#                    use_attn=use_attn and i == num_layers-1,
+#                    share_cond_net=True,
+#                    cond_net=self['cond_net_'+str(i)]))
+#
+#                self.add_module('synthesis'+str(i), SFTCondAugmentedNormalizedSynthesisTransform(
+#                    in_channels, num_features, num_filters[i], kernel_size, 
+#                    use_code=use_code and i != num_layers-1 and not dec_add, 
+#                    distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
+#                    share_cond_net=True,
+#                    cond_net=self['cond_net_'+str(i)]))
+#
+#                if use_QE:
+#                    self.add_module(
+#                        'QE'+str(i), DeQuantizationModule(in_channels, in_channels, 64, 2))
+#        else: 
+#            self.analysis = SFTCondAugmentedNormalizedAnalysisTransform(
+#                in_channels*(1+num_cond_frames), num_features, num_filters[0], kernel_size, 
+#                use_code=use_code, distribution=init_code, 
+#                gdn_mode=gdn_mode, use_attn=use_attn,
+#                share_cond_net=True,
+#                cond_net=self['cond_net_'+str(i)])
+#            self.synthesis = SFTCondAugmentedNormalizedSynthesisTransform(
+#                in_channels, num_features, num_filters[0], kernel_size, 
+#                use_code=use_code, distribution=init_code, 
+#                gdn_mode=gdn_mode, use_attn=use_attn,
+#                share_cond_net=True,
+#                cond_net=self['cond_net_'+str(i)])
+#
+#            if use_QE:
+#                for i in range(num_layers):
+#                    self.add_module(
+#                        'QE'+str(i), DeQuantizationModule(in_channels, in_channels, 64, 2))
+#
+#        self.hyper_analysis = GoogleHyperAnalysisTransform(
+#            num_features, hyper_filters, num_hyperpriors) if not use_attn else GoogleHyperAnalysisTransform2(num_features, hyper_filters, num_hyperpriors)
+#
+#        if use_context:
+#            self.hyper_synthesis = GoogleHyperSynthesisTransform(
+#                num_features*2, hyper_filters, num_hyperpriors) if not use_attn else GoogleHyperSynthesisTransform2(num_features*2, hyper_filters, num_hyperpriors)
+#        elif self.use_mean or "Mixture" in condition:
+#            self.hyper_synthesis = GoogleHyperSynthesisTransform(
+#                num_features*self.conditional_bottleneck.condition_size, hyper_filters, num_hyperpriors) if not use_attn else GoogleHyperSynthesisTransform2(num_features*self.conditional_bottleneck.condition_size, hyper_filters, num_hyperpriors)
+#        else:
+#            self.hyper_synthesis = GoogleHyperScaleSynthesisTransform(
+#                num_features, hyper_filters, num_hyperpriors)
+#
+#        self.use_QE = use_QE
+#
+#        for name, m in self.named_children():
+#            if "ana" in name or "syn" in name:
+#                m.name = name
+#
+#        if use_DQ:
+#            self.DQ = DeQuantizationModule(in_channels, in_channels, 64, 6)
+#        else:
+#            self.DQ = None
+#
+#    def __getitem__(self, key):
+#        return self.__getattr__(key[:-1] if self.share_wei else key)
+#
+#    def encode(self, input, code=None, jac=None, visual=False, figname='', cond_coupling_input=None):
+#        for i in range(self.num_layers):
+#            debug('F', i)
+#            # condition 
+#            cond = cond_coupling_input
+#            _, code, jac = self['analysis'+str(i)](
+#                input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+#
+#            if i < self.num_layers-1:
+#                debug('S', i)
+#                input, _, jac = self['synthesis'+str(i)](
+#                    input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+#
+#            if visual:
+#                logger.write(check_range(input, "X"+str(i)))
+#                logger.write(check_range(code, "code"+str(i)))
+#                logger.write()
+#
+#                channel_analysis(code, figname+f"_FCA_{i}.png")
+#
+#        return input, code, jac
+#
+#    def decode(self, input, code=None, jac=None, rec_code=False, visual=False, figname='', cond_coupling_input=None):
+#        for i in range(self.num_layers-1, -1, -1):
+#            debug('rF', i)
+#            # condition
+#            cond = cond_coupling_input
+#            input, _, jac = self['synthesis'+str(i)](
+#                input, cond, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+#
+#            if self.use_QE:
+#                BQE = input
+#                input = self['QE'+str(i)](input)
+#                if visual:
+#                    save_image(BQE, figname+f"_BQE_{i}.png")
+#                    save_image(input, figname+f"_AQE_{i}.png")
+#
+#            if i or rec_code or jac is not None:
+#                debug('RF', i)
+#                # condition
+#                cond = cond_coupling_input
+#                _, code, jac = self['analysis'+str(i)](
+#                    input, cond, code, jac, layer=i, rev=True, visual=visual, figname=figname+"_rev_"+str(i))
+#               
+#            if visual:
+#                logger.write(check_range(input, "X"+str(i)))
+#                logger.write(check_range(code, "code"+str(i)))
+#                logger.write()
+#
+#        return input, code, jac
+#
+#    def entropy_model(self, input, code, jac=False):
+#        # Enrtopy coding
+#        debug('E')
+#
+#        hyper_code = self.hyper_analysis(
+#            code.abs() if self.use_abs else code)
+#
+#        z_tilde, z_likelihood = self.entropy_bottleneck(hyper_code)
+#        # z_tilde = hyper_code
+#
+#        condition = self.hyper_synthesis(z_tilde)
+#
+#        y_tilde, y_likelihood = self.conditional_bottleneck(
+#            code, condition=condition)
+#        # y_tilde = code
+#
+#        # Encode distortion
+#        Y_error, _, jac = self['synthesis'+str(self.num_layers-1)](
+#            input, y_tilde, jac, last_layer=True, layer=self.num_layers-1)
+#
+#        return Y_error, y_tilde, z_tilde, y_likelihood, z_likelihood
+#
+#    def compress(self, input, cond_coupling_input=None, return_hat=False, reverse_input=None): #TODO
+#        assert not (cond_coupling_input is None), "cond_coupling_input should be specified"
+#        
+#        code = None
+#        jac = None
+#        input, features, jac = self.encode(
+#            input, code, jac, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
+#
+#        hyperpriors = self.hyper_analysis(
+#            features.abs() if self.use_abs else features)
+#
+#        side_stream, z_hat = self.entropy_bottleneck.compress(
+#            hyperpriors, return_sym=True)
+#
+#        condition = self.hyper_synthesis(z_hat)
+#
+#        ret = self.conditional_bottleneck.compress(
+#            features, condition=condition, return_sym=return_hat)
+#
+#        if return_hat:
+#            jac = None
+#            stream, y_hat = ret
+#
+#            # Decode
+#            if not self.output_nought:
+#                assert not (reverse_input is None), "reverse_input should be specified"
+#                input = reverse_input
+#            else:
+#                input = torch.zeros_like(input)
+#                
+#            x_hat, code, jac = self.decode(
+#                input, y_hat, jac, cond_coupling_input=cond_coupling_input)
+#            if self.DQ is not None:
+#                x_hat = self.DQ(x_hat)
+#
+#            return x_hat, [stream, side_stream], [hyperpriors.size()]
+#        else:
+#            stream = ret
+#            return [stream, side_stream], [hyperpriors.size()]
+#
+#    def decompress(self, strings, shape): #TODO
+#        stream, side_stream = strings
+#        z_shape = shape
+#
+#        z_hat = self.entropy_bottleneck.decompress(side_stream, z_shape)
+#
+#        condition = self.hyper_synthesis(z_hat)
+#
+#        y_hat = self.conditional_bottleneck.decompress(
+#            stream, condition.size(), condition=condition)
+#
+#        reconstructed = self.synthesis(y_hat)
+#
+#        return reconstructed
+#
+#    def forward(self, input, code=None, jac=None, rec_code=False, rev_ng=False, 
+#                IDQ=False, detach_enc=False, visual=False, figname='',
+#                output=None, # Should assign value when self.output_nought==False
+#                cond_coupling_input=None # Should assign value
+#                                         # When using ANFIC on residual coding, output & cond_coupling_input should both be MC frame
+#               ):
+#        if not self.output_nought:
+#            assert not (output is None), "output should be specified"
+#        
+#        assert not (cond_coupling_input is None), "cond_coupling_input should be specified"
+#
+#        # Encode
+#        if IDQ:
+#            debug("IDQ")
+#            input = input.add(torch.rand_like(input).sub_(0.5).div_(255.))
+#
+#        ori_input = input
+#
+#        if visual:
+#            save_image(input, figname+"_input.png")
+#            if not (output is None):
+#                save_image(output, figname+"_mc_frame.png")
+#            visualizer.set_mean_var(input)
+#            visualizer.queue_visual(input, figname+"_ori.png")
+#            fft_visual(input, figname+"_ori.png")
+#            logger.open(figname+"_stati.txt")
+#            logger.write("min\tmedian\tmean\tvar\tmax\n")
+#
+#        jac = [] if jac else None
+#        input, code, jac = self.encode(
+#            input, code, jac, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
+#
+#        # Enrtopy coding
+#        debug('E')
+#
+#        hyper_code = self.hyper_analysis(
+#            code.abs() if self.use_abs else code)
+#
+#        z_tilde, z_likelihood = self.entropy_bottleneck(hyper_code)
+#        # z_tilde = hyper_code
+#
+#        condition = self.hyper_synthesis(z_tilde)
+#        y_tilde, y_likelihood = self.conditional_bottleneck(
+#            code, condition=condition)
+#        # y_tilde = code # No quantize on z2
+#
+#        # Encode distortion
+#        x_2, _, jac = self['synthesis'+str(self.num_layers-1)](
+#            input, cond_coupling_input, y_tilde, jac, last_layer=True, layer=self.num_layers-1, visual=visual, figname=figname+"_"+str(self.num_layers-1))
+#
+#        if visual:
+#            visualizer.plot_queue(figname+'_for.png', nrow=input.size(0))
+#
+#            with torch.no_grad(): # Visualize z likelihood
+#                YLL_perC = y_likelihood[0].clamp_min(
+#                    1e-9).log2().mean(dim=(1, 2)).neg()
+#                fig = plt.figure()
+#                check_range(YLL_perC, "YLL")
+#                max_idx = YLL_perC.max(0)[1]
+#                plt.plot(YLL_perC.data.cpu(),
+#                         label="maxC="+str(max_idx.item()))
+#                plt.legend()
+#
+#                plt.savefig(figname+"_YLL.png")
+#                plt.close(fig)
+#            
+#            # Print feature ; code: z2, no quant ; y_tilde: \hat z2
+#            #     nrow = 8
+#            #     save_image(code.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+#            #         1), figname+"_feature.png", nrow=nrow)
+#            #     save_image(max_norm(code).add(0.5).flatten(0, 1).unsqueeze(
+#            #         1), figname+"_feature_norm.png", nrow=nrow)
+#            #     save_image(y_tilde.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+#            #         1), figname+"_quant.png", nrow=nrow)
+#            #     save_image(max_norm(y_tilde).add(0.5).flatten(0, 1).unsqueeze(
+#            #         1), figname+"_quant_norm.png", nrow=nrow)
+#
+#            #logger.write(check_range(Y_error, "X"+str(self.num_layers-1)))
+#            logger.write(check_range(x_2, "X"+str(self.num_layers-1)))
+#            logger.write(check_range(code, "code"+str(self.num_layers-1)))
+#            logger.write()
+#
+#        if self.entropy_bottleneck.quant_mode == "SGA" and self.training:
+#            tau = self.entropy_bottleneck.SGA.tau.item()*0.01
+#            #input, code, hyper_code = Y_error*tau, y_tilde, z_tilde
+#            input, code, hyper_code = x_2*tau, y_tilde, z_tilde
+#        else:
+#            #input, code, hyper_code = torch.zeros_like(input), y_tilde, z_tilde
+#            #input, code, hyper_code = x_2, y_tilde, z_tilde # x_2 directly backward
+#            input, code, hyper_code = output, y_tilde, z_tilde # Correct setting ; MC frame as x_2 when decoding
+#
+#        # input = Y_error
+#        #debug(Y_error.shape, code.shape, hyper_code.shape)
+#        debug(x_2.shape, code.shape, hyper_code.shape)
+#
+#        if visual:
+#            logger.write(check_range(input, "X"+str(self.num_layers-1)))
+#            logger.write(check_range(code, "code"+str(self.num_layers-1)))
+#            logger.write()
+#
+#        # Decode
+#        input, code, jac = self.decode(
+#            input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
+#
+#        if visual:
+#            visualizer.plot_queue(figname+'_rev.png', nrow=input.size(0))
+#            logger.close()
+#
+#        # Quality enhancement
+#        if self.DQ is not None:
+#            debug("DQ")
+#            BDQ = input
+#            input = self.DQ(input)
+#            if visual:
+#                save_image(x_2, figname+"_x_2.png")
+#                save_image(BDQ, figname+"_BDQ.png")
+#                save_image(input, figname+"_ADQ.png")
+#        else:
+#            BDQ = None
+#
+#        debug('END\n')
+#
+#        return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
+#
 # ---------------------------------------------- End SFTCondANFCoder -------------------------------------------- #
 
 
@@ -5216,6 +5459,535 @@ class CondAugmentedNormalizedFlowHyperPriorCoderPredPrior(CondAugmentedNormalize
             return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
 
 
+class SFTANFCoder(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
+    def __init__(self, **kwargs):
+        super(SFTANFCoder, self).__init__(**kwargs)
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        num_filters           = kwargs['num_filters']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        num_cond_frames       = kwargs['num_cond_frames']
+        
+        self.feat_filters = [32, 48, 48, 48, 48]
+        self.feat = FeatureExtractor(in_channels, num_filters=self.feat_filters, kernel_size=3)
+
+        for i in range(num_layers):
+            self.__delattr__('analysis'+str(i))
+            self.add_module('analysis'+str(i), SFTAnalysisTransform(
+                in_channels=in_channels, num_features=num_features, num_filters=num_filters, kernel_size=kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode,
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1
+            ))
+
+            self.__delattr__('synthesis'+str(i))
+            self.add_module('synthesis'+str(i), SFTSynthesisTransform(
+                in_channels=in_channels, num_features=num_features, num_filters=num_filters, kernel_size=kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, 
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1))
+
+        for name, m in self.named_children():
+            if "ana" in name  or "syn" in name:
+                m.name = name
+
+         
+    def encode(self, input, code=None, jac=None, visual=False, figname='', cond_coupling_input=None):
+        conds = cond_coupling_input
+
+        for i in range(self.num_layers):
+            debug('F', i)
+
+            _, code, jac = self['analysis'+str(i)](
+                input, conds, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+            
+            if i < self.num_layers-1:
+                debug('S', i)
+                input, _, jac = self['synthesis'+str(i)](
+                    input, conds, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+
+            if visual:
+                logger.write(check_range(input, "X"+str(i)))
+                logger.write(check_range(code, "code"+str(i)))
+                logger.write()
+
+                channel_analysis(code, figname+f"_FCA_{i}.png")
+
+        return input, code, jac
+
+    def decode(self, input, code=None, jac=None, rec_code=False, visual=False, figname='', cond_coupling_input=None):
+        conds = cond_coupling_input
+
+        if self.get_decoded:
+            decoded = []
+
+        for i in range(self.num_layers-1, -1, -1):
+            debug('rF', i)
+                       
+            input, _, jac = self['synthesis'+str(i)](
+                input, conds, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+
+            if self.get_decoded:
+                decoded.append(input)
+
+            if self.use_QE:
+                BQE = input
+                input = self['QE'+str(i)](input)
+                if visual:
+                    save_image(BQE, figname+f"_BQE_{i}.png")
+                    save_image(input, figname+f"_AQE_{i}.png")
+
+            if i or rec_code or jac is not None:
+                debug('RF', i)
+                _, code, jac = self['analysis'+str(i)](
+                    input, conds, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+
+                #_, code, jac = self['analysis' +
+                #                    str(i)](input, code, jac, rev=True, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+
+            if visual:
+                logger.write(check_range(input, "X"+str(i)))
+                logger.write(check_range(code, "code"+str(i)))
+                logger.write()
+        
+        if self.get_decoded:
+            return input, code, jac, decoded
+        else:
+            return input, code, jac
+
+    def forward(self, input, code=None, jac=None, rec_code=False, rev_ng=False,
+                IDQ=False, detach_enc=False, visual=False, figname='',
+                output=None,  # Should assign value when self.output_nought==False
+                cond_coupling_input=None,  # Should assign value when self.cond_coupling==True
+                pred_prior_input=None  # cond_coupling_input will replace this when None
+               ):
+
+        if not self.output_nought:
+            assert not (output is None), "output should be specified"
+        if self.cond_coupling:
+            assert not (cond_coupling_input is None), "cond_coupling_input should be specified"
+         
+            if self.diff_condition:
+                assert len(cond_coupling_input)==self.num_layers, f"cond_coupling_input should be a list with length {self.num_layers}"
+
+        if pred_prior_input is None:
+            pred_prior_input = cond_coupling_input
+
+        # Encode
+        if IDQ:
+            debug("IDQ")
+            input = input.add(torch.rand_like(input).sub_(0.5).div_(255.))
+
+        ori_input = input
+
+        if visual:
+            save_image(input, figname + "_input.png")
+            if not (output is None):
+                save_image(output, figname + "_mc_frame.png")
+            visualizer.set_mean_var(input)
+            visualizer.queue_visual(input, figname + "_ori.png")
+            fft_visual(input, figname + "_ori.png")
+            logger.open(figname + "_stati.txt")
+            logger.write("min\tmedian\tmean\tvar\tmax\n")
+        
+        autoencoding_conds = self.feat(cond_coupling_input)
+
+        jac = [] if jac else None
+        input, code, jac = self.encode(
+            input, code, jac, visual=visual, figname=figname, cond_coupling_input=autoencoding_conds)
+
+        # Enrtopy coding
+        debug('E')
+
+        hyper_code = self.hyper_analysis(
+            code.abs() if self.use_abs else code)
+
+        z_tilde, z_likelihood = self.entropy_bottleneck(hyper_code)
+        # z_tilde = hyper_code
+
+        hp_feat = self.hyper_synthesis(z_tilde)
+        pred_feat = self.pred_prior(pred_prior_input)
+
+        condition = self.PA(torch.cat([hp_feat, pred_feat], dim=1))
+
+        y_tilde, y_likelihood = self.conditional_bottleneck(
+            code, condition=condition)
+
+        # y_tilde = code # No quantize on z2
+
+        # Encode distortion
+        # Y_error, _, jac = self['synthesis'+str(self.num_layers-1)](
+        x_2, _, jac = self['synthesis' + str(self.num_layers - 1)](
+            input, autoencoding_conds, y_tilde, jac, last_layer=True, layer=self.num_layers - 1, visual=visual,
+            figname=figname + "_" + str(self.num_layers - 1))
+
+        if visual:
+            visualizer.plot_queue(figname + '_for.png', nrow=input.size(0))
+
+            with torch.no_grad():  # Visualize z likelihood
+                YLL_perC = y_likelihood[0].clamp_min(
+                    1e-9).log2().mean(dim=(1, 2)).neg()
+                fig = plt.figure()
+                check_range(YLL_perC, "YLL")
+                max_idx = YLL_perC.max(0)[1]
+                plt.plot(YLL_perC.data.cpu(),
+                         label="maxC=" + str(max_idx.item()))
+                plt.legend()
+
+                plt.savefig(figname + "_YLL.png")
+                plt.close(fig)
+
+            # Print feature ; code: z2, no quant ; y_tilde: \hat z2
+            #     nrow = 8
+            #     save_image(code.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_feature.png", nrow=nrow)
+            #     save_image(max_norm(code).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_feature_norm.png", nrow=nrow)
+            #     save_image(y_tilde.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_quant.png", nrow=nrow)
+            #     save_image(max_norm(y_tilde).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_quant_norm.png", nrow=nrow)
+
+            # logger.write(check_range(Y_error, "X"+str(self.num_layers-1)))
+            logger.write(check_range(x_2, "X" + str(self.num_layers - 1)))
+            logger.write(check_range(code, "code" + str(self.num_layers - 1)))
+            logger.write()
+
+        if self.entropy_bottleneck.quant_mode == "SGA" and self.training:
+            tau = self.entropy_bottleneck.SGA.tau.item() * 0.01
+            # input, code, hyper_code = Y_error*tau, y_tilde, z_tilde
+            input, code, hyper_code = x_2 * tau, y_tilde, z_tilde
+        else:
+            # input, code, hyper_code = torch.zeros_like(input), y_tilde, z_tilde
+            # input, code, hyper_code = x_2, y_tilde, z_tilde # x_2 directly backward
+            input, code, hyper_code = output, y_tilde, z_tilde  # Correct setting ; MC frame as x_2 when decoding
+
+        # input = Y_error
+        # debug(Y_error.shape, code.shape, hyper_code.shape)
+        debug(x_2.shape, code.shape, hyper_code.shape)
+
+        if visual:
+            logger.write(check_range(input, "X" + str(self.num_layers - 1)))
+            logger.write(check_range(code, "code" + str(self.num_layers - 1)))
+            logger.write()
+
+        # Decode
+        if self.get_decoded:
+            input, code, jac, decoded = self.decode(
+                input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=autoencoding_conds)
+        else:
+            input, code, jac = self.decode(
+                input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=autoencoding_conds)
+
+        if visual:
+            visualizer.plot_queue(figname + '_rev.png', nrow=input.size(0))
+            logger.close()
+
+        # Quality enhancement
+        if self.DQ is not None:
+            debug("DQ")
+            BDQ = input
+            input = self.DQ(input)
+            if visual:
+                save_image(x_2, figname + "_x_2.png")
+                save_image(BDQ, figname + "_BDQ.png")
+                save_image(input, figname + "_ADQ.png")
+        else:
+            BDQ = None
+
+        debug('END\n')
+
+        if self.get_decoded:
+            return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ, decoded
+        else:
+            return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
+
+
+class CondSFTANFCoder(SFTANFCoder):
+    def __init__(self, **kwargs):
+        super(CondSFTANFCoder, self).__init__(**kwargs)
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        num_filters           = kwargs['num_filters']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        num_cond_frames       = kwargs['num_cond_frames']
+        
+        for i in range(num_layers):
+            self.__delattr__('analysis'+str(i))
+            self.add_module('analysis'+str(i), CondSFTAnalysisTransform(
+                in_channels=in_channels, num_features=num_features, num_filters=num_filters, kernel_size=kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode,
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1
+            ))
+
+            self.__delattr__('synthesis'+str(i))
+            self.add_module('synthesis'+str(i), CondSFTSynthesisTransform(
+                in_channels=in_channels, num_features=num_features, num_filters=num_filters, kernel_size=kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, 
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1))
+
+        for name, m in self.named_children():
+            if "ana" in name  or "syn" in name:
+                m.name = name
+# # +
+class PriorSelection(nn.Sequential):
+    def __init__(self, in_channels, num_filters, out_channels):
+        super().__init__(
+            nn.Conv2d(in_channels, num_filters, 1),
+            nn.LeakyReLU(0.1, inplace=True),
+            ResBlock_LeakyReLU_0_Point_1(num_filters),
+            nn.Conv2d(num_filters, out_channels, 1),
+            nn.Sigmoid()
+        )
+        
+    def forward(self, input1, input2, eps=1e-10):
+        B, C, H, W = input1.shape
+        #mask = super().forward(torch.cat([input1, input2], dim=1)).unsqueeze(1)
+
+        #prob = torch.cat([mask, 1.-mask], dim=1)
+
+        #log_prob = torch.log(prob + eps) # add eps to prevent log 0 
+
+        #### Gumbel Softmax ###
+        #hard_mask = F.gumbel_softmax(log_prob, dim=1, hard=True)[:, 1]
+        sigma1, sigma2 = input1.chunk(2, dim=1)[1], input2.chunk(2, dim=1)[1]
+        hard_mask = (sigma1 < sigma2).float()
+
+        hard_mask = torch.cat([hard_mask]*2, dim=1)
+
+        result = hard_mask * input1 + (1. - hard_mask) * input2
+        return result, hard_mask
+
+
+class CondANFSelectPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
+    def __init__(self, **kwargs):
+        super(CondANFSelectPrior, self).__init__(**kwargs)
+        
+        self.num_features = kwargs['num_features']
+        in_channels_predprior = kwargs['in_channels_predprior']
+        num_predprior_filters = kwargs['num_predprior_filters']
+
+        if num_predprior_filters is None:  # When not specifying, it will align to num_filters
+            num_predprior_filters = kwargs['num_filters']
+
+        if self.use_mean or "Mixture" in kwargs["condition"]:
+            self.pred_prior = GoogleAnalysisTransform(in_channels_predprior,
+                                                      kwargs['num_features'] * self.conditional_bottleneck.condition_size,
+                                                      num_predprior_filters,  # num_filters=64,
+                                                      kwargs['kernel_size'],  # kernel_size=3,
+                                                      simplify_gdn=False)
+            self.PA = nn.Sequential(
+                nn.Conv2d((kwargs['num_features'] * self.conditional_bottleneck.condition_size) * 2, 640, 1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(640, 640, 1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(640, kwargs['num_features'] * self.conditional_bottleneck.condition_size, 1)
+            )
+
+#             self.mask_gen = nn.Sequential(
+#                 nn.Conv2d((kwargs['num_features'] * self.conditional_bottleneck.condition_size) * 2, 640, 1),
+#                 nn.LeakyReLU(inplace=True),
+#                 nn.Conv2d(640, kwargs['num_features'], 1),
+#                 nn.Sigmoid()
+#             )
+            self.prior_selection = PriorSelection(
+                (kwargs['num_features'] * self.conditional_bottleneck.condition_size) * 2,
+                320,
+                kwargs['num_features'])
+        else:
+            raise ValueError
+    
+    def forward(self, input, code=None, jac=None, rec_code=False, rev_ng=False,
+                IDQ=False, detach_enc=False, visual=False, figname='',
+                output=None,  # Should assign value when self.output_nought==False
+                cond_coupling_input=None,  # Should assign value when self.cond_coupling==True
+                pred_prior_input=None,  # cond_coupling_input will replace this when None
+                use_prior='mix', # 'mix', 'hp', 'combine', 'temp'
+                return_mask=False
+               ):
+        assert use_prior in ['mix', 'hp', 'combine', 'temp'], ValueError
+
+        if not self.output_nought:
+            assert not (output is None), "output should be specified"
+        if self.cond_coupling:
+            assert not (cond_coupling_input is None), "cond_coupling_input should be specified"
+         
+            if self.diff_condition:
+                assert len(cond_coupling_input)==self.num_layers, f"cond_coupling_input should be a list with length {self.num_layers}"
+
+        if pred_prior_input is None:
+            pred_prior_input = cond_coupling_input
+
+        # Encode
+        if IDQ:
+            debug("IDQ")
+            input = input.add(torch.rand_like(input).sub_(0.5).div_(255.))
+
+        ori_input = input
+
+        if visual:
+            save_image(input, figname + "_input.png")
+            if not (output is None):
+                save_image(output, figname + "_mc_frame.png")
+            visualizer.set_mean_var(input)
+            visualizer.queue_visual(input, figname + "_ori.png")
+            fft_visual(input, figname + "_ori.png")
+            logger.open(figname + "_stati.txt")
+            logger.write("min\tmedian\tmean\tvar\tmax\n")
+
+        jac = [] if jac else None
+        input, code, jac = self.encode(
+            input, code, jac, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
+
+        # Enrtopy coding
+        debug('E')
+
+        hyper_code = self.hyper_analysis(
+            code.abs() if self.use_abs else code)
+
+        z_tilde, z_likelihood = self.entropy_bottleneck(hyper_code)
+        # z_tilde = hyper_code
+
+        hp_feat = self.hyper_synthesis(z_tilde)
+        pred_feat = self.pred_prior(pred_prior_input)
+
+        combine_feat = self.PA(torch.cat([hp_feat.detach(), pred_feat], dim=1))
+        
+        if use_prior == 'mix':
+            condition, mask = self.prior_selection(combine_feat, hp_feat)
+            #condition, mask = self.prior_selection(temp_feat, hp_feat)
+        elif use_prior == 'hp':
+            condition = hp_feat
+        elif use_prior == 'combine':
+            condition = combine_feat
+        elif use_prior == 'temp':
+            condition = pred_feat
+        else:
+            raise ValueError
+
+        y_tilde, y_likelihood = self.conditional_bottleneck(
+            code, condition=condition)
+
+        # y_tilde = code # No quantize on z2
+
+        # Encode distortion
+        # Concat code with condition (MC frame feature)
+        # if self.cond_coupling:
+        #    cond = self['cond_encoder'+str(self.num_layers-1)](cond_coupling_input)
+        #    y_tilde = torch.cat([y_tilde, cond], dim=1)
+        # Y_error, _, jac = self['synthesis'+str(self.num_layers-1)](
+        x_2, _, jac = self['synthesis' + str(self.num_layers - 1)](
+            input, y_tilde, jac, last_layer=True, layer=self.num_layers - 1, visual=visual,
+            figname=figname + "_" + str(self.num_layers - 1))
+
+        if visual:
+            visualizer.plot_queue(figname + '_for.png', nrow=input.size(0))
+
+            with torch.no_grad():  # Visualize z likelihood
+                YLL_perC = y_likelihood[0].clamp_min(
+                    1e-9).log2().mean(dim=(1, 2)).neg()
+                fig = plt.figure()
+                check_range(YLL_perC, "YLL")
+                max_idx = YLL_perC.max(0)[1]
+                plt.plot(YLL_perC.data.cpu(),
+                         label="maxC=" + str(max_idx.item()))
+                plt.legend()
+
+                plt.savefig(figname + "_YLL.png")
+                plt.close(fig)
+
+            # Print feature ; code: z2, no quant ; y_tilde: \hat z2
+            #     nrow = 8
+            #     save_image(code.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_feature.png", nrow=nrow)
+            #     save_image(max_norm(code).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_feature_norm.png", nrow=nrow)
+            #     save_image(y_tilde.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_quant.png", nrow=nrow)
+            #     save_image(max_norm(y_tilde).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_quant_norm.png", nrow=nrow)
+
+            # logger.write(check_range(Y_error, "X"+str(self.num_layers-1)))
+            logger.write(check_range(x_2, "X" + str(self.num_layers - 1)))
+            logger.write(check_range(code, "code" + str(self.num_layers - 1)))
+            logger.write()
+
+        if self.entropy_bottleneck.quant_mode == "SGA" and self.training:
+            tau = self.entropy_bottleneck.SGA.tau.item() * 0.01
+            # input, code, hyper_code = Y_error*tau, y_tilde, z_tilde
+            input, code, hyper_code = x_2 * tau, y_tilde, z_tilde
+        else:
+            # input, code, hyper_code = torch.zeros_like(input), y_tilde, z_tilde
+            # input, code, hyper_code = x_2, y_tilde, z_tilde # x_2 directly backward
+            input, code, hyper_code = output, y_tilde, z_tilde  # Correct setting ; MC frame as x_2 when decoding
+
+        # input = Y_error
+        # debug(Y_error.shape, code.shape, hyper_code.shape)
+        debug(x_2.shape, code.shape, hyper_code.shape)
+
+        if visual:
+            logger.write(check_range(input, "X" + str(self.num_layers - 1)))
+            logger.write(check_range(code, "code" + str(self.num_layers - 1)))
+            logger.write()
+
+        # Decode
+        if self.get_decoded:
+            input, code, jac, decoded = self.decode(
+                input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
+        else:
+            input, code, jac = self.decode(
+                input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=cond_coupling_input)
+
+        if visual:
+            visualizer.plot_queue(figname + '_rev.png', nrow=input.size(0))
+            logger.close()
+
+        # Quality enhancement
+        if self.DQ is not None:
+            debug("DQ")
+            BDQ = input
+            input = self.DQ(input)
+            if visual:
+                save_image(x_2, figname + "_x_2.png")
+                save_image(BDQ, figname + "_BDQ.png")
+                save_image(input, figname + "_ADQ.png")
+        else:
+            BDQ = None
+
+        debug('END\n')
+
+        if self.get_decoded:
+            return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ, decoded
+        elif return_mask:
+            if use_prior == 'mix':
+                mask = (mask, condition, hp_feat, combine_feat, pred_feat)
+            else:
+                mask = (None, condition, hp_feat, combine_feat, pred_feat)
+            return input, (y_likelihood, z_likelihood, mask), x_2, jac, code, BDQ
+        else:
+            return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
+# -
+
+
+
 class CondAugmentedNormalizedFlowHyperPriorCoderPredPriorGetDecode(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
     def __init__(self, **kwargs):
         super(CondAugmentedNormalizedFlowHyperPriorCoderPredPriorGetDecode, self).__init__(**kwargs)
@@ -6114,13 +6886,163 @@ class ResBlockSynthesisTransform(nn.Sequential):
         )
 
 
+class TCMAnalysisTransform(CondAugmentedNormalizedFlow):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size,
+                 use_code, distribution, gdn_mode,
+                 cond_features=[32, 64, 96],
+                 use_attn=False, integerlize=False):
+        super(TCMAnalysisTransform, self).__init__(
+            use_code=use_code, transpose=False, distribution=distribution, integerlize=integerlize
+        )
+        assert type(cond_features) is list
+        self.cond_features = cond_features
+
+        self.conv1 = nn.Sequential(
+                        Conv2d(in_channels+cond_features[0], num_filters, 3, stride=2),
+                        ANFNorm(num_filters, mode=gdn_mode)
+                     )
+        self.res1 = ResBlockTCM(num_filters+cond_features[1], bottleneck=True, slope=0.1,
+                                start_from_relu=True, end_with_relu=True)
+        
+        self.conv2 = nn.Sequential(
+                        Conv2d(num_filters+cond_features[1], num_filters, 3, stride=2),
+                        ANFNorm(num_filters, mode=gdn_mode)
+                     )
+        self.res2 = ResBlockTCM(num_filters+cond_features[2], bottleneck=True, slope=0.1,
+                                start_from_relu=True, end_with_relu=True)
+        
+        self.conv3 = nn.Sequential(
+                        Conv2d(num_filters+cond_features[2], num_filters, 3, stride=2),
+                        ANFNorm(num_filters, mode=gdn_mode)
+                     )
+        self.conv4 = Conv2d(num_filters, num_features * (2 if use_code else 1), 3, stride=2)
+               
+        self.attn = AttentionBlock(num_features * (2 if use_code else 1), non_local=True) if use_attn else nn.Identity()
+        
+    def net_forward(self, input, conds):
+        assert len(conds) == len(self.cond_features)
+        x = self.conv1(torch.cat([input, conds[0]], dim=1))
+
+        x = self.res1(torch.cat([x, conds[1]], dim=1))
+        x = self.conv2(x)
+        
+        x = self.res2(torch.cat([x, conds[2]], dim=1))
+        x = self.conv3(x)
+        x = self.conv4(x)
+        
+        x = self.attn(x)
+
+        return x
+
+
+def subpel_conv3x3(in_ch, out_ch, r=1):
+    """3x3 sub-pixel convolution for up-sampling."""
+    return nn.Sequential(
+        nn.Conv2d(in_ch, out_ch * r ** 2, kernel_size=3, padding=1), nn.PixelShuffle(r)
+    )
+
+
+class TCMSynthesisTransform(AugmentedNormalizedFlow):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size,
+                 use_code, distribution, gdn_mode,
+                 cond_features=[32, 64, 96],
+                 use_attn=False, integerlize=False):
+
+        assert type(cond_features) is list
+        self.cond_features = cond_features
+
+        super(TCMSynthesisTransform, self).__init__(
+            AttentionBlock(
+                num_features, non_local=True) if use_attn else nn.Identity(),
+            subpel_conv3x3(num_features, num_filters, 2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            subpel_conv3x3(num_filters, num_filters, 2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ResBlockTCM(num_filters, bottleneck=True, slope=0.1,
+                                start_from_relu=True, end_with_relu=True),
+            subpel_conv3x3(num_filters, num_filters, 2),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ResBlockTCM(num_filters, bottleneck=True, slope=0.1,
+                                start_from_relu=True, end_with_relu=True),
+            subpel_conv3x3(num_filters, 32, 2),
+            nn.Conv2d(32, num_filters, 3, stride=1, padding=1),
+            ResBlockTCM(num_filters, bottleneck=False, slope=0.1,
+                start_from_relu=True, end_with_relu=True),
+            ResBlockTCM(num_filters, bottleneck=False, slope=0.1,
+                start_from_relu=True, end_with_relu=True),
+            nn.Conv2d(num_filters, in_channels, 3, stride=1, padding=1),
+
+            use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize
+        )
+
+
+
+class TCMCondSynthesisTransform(CondAugmentedNormalizedFlow):
+    def __init__(self, in_channels, num_features, num_filters, kernel_size,
+                 use_code, distribution, gdn_mode,
+                 cond_features=[32, 64, 96],
+                 use_attn=False, integerlize=False):
+        super(TCMCondSynthesisTransform, self).__init__(
+            use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize
+        )
+        assert type(cond_features) is list
+        self.cond_features = cond_features
+
+        self.attn = AttentionBlock(num_features, non_local=True) if use_attn else nn.Identity()
+
+        self.conv1 = nn.Sequential(
+                        subpel_conv3x3(num_features, num_filters, 2),
+                        ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+                     )
+        self.conv2 = nn.Sequential(
+                        subpel_conv3x3(num_filters, num_filters, 2),
+                        ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+                     )
+        self.res1 = ResBlockTCM(num_filters+cond_features[2], bottleneck=True, slope=0.1,
+                                start_from_relu=True, end_with_relu=True)
+        self.conv3 = nn.Sequential(
+                        subpel_conv3x3(num_filters+cond_features[2], num_filters, 2),
+                        ANFNorm(num_filters, inverse=True, mode=gdn_mode)
+                     )
+        self.res2 = ResBlockTCM(num_filters+cond_features[1], bottleneck=True, slope=0.1,
+                                start_from_relu=True, end_with_relu=True)
+        self.conv4 = subpel_conv3x3(num_filters+cond_features[1], 32, 2)
+
+        self.frame_gen = nn.Sequential(
+                            nn.Conv2d(32+cond_features[0], num_filters, 3, stride=1, padding=1),
+                            ResBlockTCM(num_filters, bottleneck=False, slope=0.1,
+                                start_from_relu=True, end_with_relu=True),
+                            ResBlockTCM(num_filters, bottleneck=False, slope=0.1,
+                                start_from_relu=True, end_with_relu=True),
+                            nn.Conv2d(num_filters, in_channels, 3, stride=1, padding=1),
+                         )
+                        
+    def net_forward(self, input, conds):
+        assert len(conds) == len(self.cond_features)
+        
+        x = self.attn(input)
+
+        x = self.conv1(x)
+        x = self.conv2(x)
+
+        x = self.res1(torch.cat([x, conds[2]], dim=1))
+        x = self.conv3(x)
+
+        x = self.res2(torch.cat([x, conds[1]], dim=1))
+        x = self.conv4(x)
+        
+        x = self.frame_gen(torch.cat([x, conds[0]], dim=1))
+
+        return x
+
+
 class TCMHyperAnalysisTransform(nn.Sequential):
     def __init__(self, num_features, num_filters, num_hyperpriors):
         super(TCMHyperAnalysisTransform, self).__init__(
             Conv2d(num_features, num_filters, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
             Conv2d(num_filters, num_filters, kernel_size=3, stride=2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
             Conv2d(num_filters, num_hyperpriors, kernel_size=3, stride=2)
         )
 
@@ -6130,10 +7052,10 @@ class TCMHyperSynthesisTransform(nn.Sequential):
         super(TCMHyperSynthesisTransform, self).__init__(
             ConvTranspose2d(num_hyperpriors, num_filters,
                             kernel_size=3, stride=2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
             ConvTranspose2d(num_filters, num_filters * 3 // 2,
                             kernel_size=3, stride=2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
             ConvTranspose2d(num_filters * 3 // 2, num_features,
                             kernel_size=3, stride=1)
         )
@@ -8317,12 +9239,31 @@ class AugmentedNormalizedAnalysisTransformDCVC(AugmentedNormalizedFlow):
             use_code=use_code, transpose=False, distribution=distribution, integerlize=integerlize
         )
 
+class AugmentedNormalizedSynthesisTransformDCVC(AugmentedNormalizedFlow):
+    def __init__(self, out_channels, num_features, num_filters, kernel_size, 
+                 use_code, distribution, gdn_mode, use_attn=False, integerlize=False):
+        super(AugmentedNormalizedSynthesisTransformDCVC, self).__init__(
+            AttentionBlock(
+                num_features, non_local=True) if use_attn else nn.Identity(),
+            ConvTranspose2d(num_features, num_filters, 3, stride=2, padding=1, output_padding=1),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ConvTranspose2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ResBlock_LeakyReLU_0_Point_1(num_filters),
+            ConvTranspose2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ResBlock_LeakyReLU_0_Point_1(num_filters),
+            ConvTranspose2d(num_filters, out_synthesis, 3, stride=2, padding=1, output_padding=1),
+            use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize)
+
+
 class CondAugmentedNormalizedSynthesisTransformDCVC(CondAugmentedNormalizedFlow):
     def __init__(self, out_channels, num_features, num_filters, kernel_size, 
                  use_code, distribution, gdn_mode, use_attn=False, integerlize=False,
+                 use_gs=True,
                  num_cond_features=3, out_synthesis=3, gs_hidden=16, mc_decode_cond=False):
         super(CondAugmentedNormalizedSynthesisTransformDCVC, self).__init__(use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize)
-        
+
         self.contextualDecoder_part1 = nn.Sequential(
             AttentionBlock(
                 num_features, non_local=True) if use_attn else nn.Identity(),
@@ -8336,6 +9277,20 @@ class CondAugmentedNormalizedSynthesisTransformDCVC(CondAugmentedNormalizedFlow)
             ResBlock_LeakyReLU_0_Point_1(num_filters),
             SubPixelConv2d(num_filters, out_synthesis, 3, stride=2, padding=1, output_padding=1),
         )
+
+        #self.contextualDecoder_part1 = nn.Sequential(
+        #    AttentionBlock(
+        #        num_features, non_local=True) if use_attn else nn.Identity(),
+        #    ConvTranspose2d(num_features, num_filters, 3, stride=2, padding=1, output_padding=1),
+        #    ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+        #    ConvTranspose2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
+        #    ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+        #    ResBlock_LeakyReLU_0_Point_1(num_filters),
+        #    ConvTranspose2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
+        #    ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+        #    ResBlock_LeakyReLU_0_Point_1(num_filters),
+        #    ConvTranspose2d(num_filters, out_synthesis, 3, stride=2, padding=1, output_padding=1),
+        #)
         
         if mc_decode_cond:
             self.contextualDecoder_part2 = nn.Sequential(
@@ -8353,8 +9308,9 @@ class CondAugmentedNormalizedSynthesisTransformDCVC(CondAugmentedNormalizedFlow)
             )
         
         
-    def net_forward(self, input, input_cond):
+    def net_forward(self, input, input_cond=None):
         x = self.contextualDecoder_part1(input)
+        assert input_cond is not None
         output = self.contextualDecoder_part2(torch.cat([x, input_cond], dim=1))
         return output
 
@@ -8365,15 +9321,15 @@ class AugmentedNormalizedSynthesisTransformDCVC(AugmentedNormalizedFlow):
         super(AugmentedNormalizedSynthesisTransformDCVC, self).__init__(
             AttentionBlock(
                 num_features, non_local=True) if use_attn else nn.Identity(),
-            SubPixelConv2d(num_features, num_filters, 3, stride=2, padding=1, output_padding=1),
+            ConvTranspose2d(num_features, num_filters, 3, stride=2, padding=1, output_padding=1),
             ANFNorm(num_filters, inverse=True, mode=gdn_mode),
-            SubPixelConv2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
-            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
-            ResBlock_LeakyReLU_0_Point_1(num_filters),
-            SubPixelConv2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
+            ConvTranspose2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
             ANFNorm(num_filters, inverse=True, mode=gdn_mode),
             ResBlock_LeakyReLU_0_Point_1(num_filters),
-            SubPixelConv2d(num_filters, out_channels, 3, stride=2, padding=1, output_padding=1),
+            ConvTranspose2d(num_filters, num_filters, 3, stride=2, padding=1, output_padding=1),
+            ANFNorm(num_filters, inverse=True, mode=gdn_mode),
+            ResBlock_LeakyReLU_0_Point_1(num_filters),
+            ConvTranspose2d(num_filters, out_channels, 3, stride=2, padding=1, output_padding=1),
             use_code=use_code, transpose=True, distribution=distribution, integerlize=integerlize)
 
 
@@ -9025,9 +9981,49 @@ class CondANFPredPriorDCVCBackboneCustom2(CondANFPredPriorDCVCBackbone):
             return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
 
 
-class AsymmetricCANFResBlockPredPrior(CondANFPredPriorDCVCBackbone):
+class AsymmetricCANFResBlockPredPrior(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
     def __init__(self, **kwargs):
         super(AsymmetricCANFResBlockPredPrior, self).__init__(**kwargs)
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        num_filters           = kwargs['num_filters']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        num_cond_frames       = kwargs['num_cond_frames']
+
+
+        if not isinstance(kwargs['num_filters'], list):
+            raise ValueError
+
+        for i in range(num_layers):
+            self.__delattr__('analysis'+str(i))
+            self.add_module('analysis'+str(i), AugmentedNormalizedAnalysisTransformDCVC(
+                in_channels*(1+num_cond_frames), num_features, num_filters[i*2], kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1
+            ))
+
+            self.__delattr__('synthesis'+str(i))
+            self.add_module('synthesis'+str(i), AugmentedNormalizedSynthesisTransformDCVC(
+                in_channels, num_features, num_filters[i*2+1], kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, use_attn=use_attn and i == num_layers-1,
+            ))
+
+        for name, m in self.named_children():
+            if "ana" in name  or "syn" in name:
+                m.name = name
+
+
+
+class AsymmetricCANFResBlockPredPriorGS(CondANFPredPriorDCVCBackbone):
+    def __init__(self, **kwargs):
+        super(AsymmetricCANFResBlockPredPriorGS, self).__init__(**kwargs)
         
         if not isinstance(kwargs['num_filters'], list):
             raise ValueError
@@ -9104,6 +10100,542 @@ class AsymmetricCANFResBlockPredPrior(CondANFPredPriorDCVCBackbone):
                 m.name = name
 
 
+class FeatureExtractorTCM(nn.Module):
+    def __init__(self, channel=64):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, channel, 3, stride=1, padding=1)
+        self.res_block1 = ResBlockTCM(channel)
+        self.conv2 = nn.Conv2d(channel, channel, 3, stride=2, padding=1)
+        self.res_block2 = ResBlockTCM(channel)
+        self.conv3 = nn.Conv2d(channel, channel, 3, stride=2, padding=1)
+        self.res_block3 = ResBlockTCM(channel)
+
+    def forward(self, feature):
+        layer1 = self.conv1(feature)
+        layer1 = self.res_block1(layer1)
+
+        layer2 = self.conv2(layer1)
+        layer2 = self.res_block2(layer2)
+
+        layer3 = self.conv3(layer2)
+        layer3 = self.res_block3(layer3)
+        return layer1, layer2, layer3
+
+
+class MultiScaleContextFusion(nn.Module):
+    def __init__(self, channel_in=64, channel_out=64):
+        super().__init__()
+        self.conv3_up = subpel_conv3x3(channel_in, channel_out, 2)
+        self.res_block3_up = ResBlockTCM(channel_out)
+        self.conv3_out = nn.Conv2d(channel_out, channel_out, 3, padding=1)
+        self.res_block3_out = ResBlockTCM(channel_out)
+        self.conv2_up = subpel_conv3x3(channel_out * 2, channel_out, 2)
+        self.res_block2_up = ResBlockTCM(channel_out)
+        self.conv2_out = nn.Conv2d(channel_out * 2, channel_out, 3, padding=1)
+        self.res_block2_out = ResBlockTCM(channel_out)
+        self.conv1_out = nn.Conv2d(channel_out * 2, channel_out, 3, padding=1)
+        self.res_block1_out = ResBlockTCM(channel_out)
+
+    def forward(self, context1, context2, context3):
+        context3_up = self.conv3_up(context3)
+        context3_up = self.res_block3_up(context3_up)
+        context3_out = self.conv3_out(context3)
+        context3_out = self.res_block3_out(context3_out)
+        context2_up = self.conv2_up(torch.cat((context3_up, context2), dim=1))
+        context2_up = self.res_block2_up(context2_up)
+        context2_out = self.conv2_out(torch.cat((context3_up, context2), dim=1))
+        context2_out = self.res_block2_out(context2_out)
+        context1_out = self.conv1_out(torch.cat((context2_up, context1), dim=1))
+        context1_out = self.res_block1_out(context1_out)
+        context1 = context1 + context1_out
+        context2 = context2 + context2_out
+        context3 = context3 + context3_out
+        return context1, context2, context3
+
+
+
+class TemporalPriorTCM(nn.Module):
+    def __init__(self, num_filters, out_channels, cond_features):
+        super(TemporalPriorTCM, self).__init__()
+        self.conv1 = nn.Sequential(
+                        Conv2d(cond_features[0], num_filters, 3, stride=2),
+                        ANFNorm(num_filters, mode='standard')
+                     )
+        self.conv2 = nn.Sequential(
+                        Conv2d(num_filters+cond_features[1], 96, 3, stride=2),
+                        ANFNorm(96, mode='standard')
+                     )
+        self.conv3 = nn.Sequential(
+                        Conv2d(96+cond_features[2], 144, 3, stride=2),
+                        ANFNorm(144, mode='standard'),
+                        Conv2d(144, out_channels, 3, stride=2)
+                     )
+    def forward(self, conds):
+        x = self.conv1(conds[0])
+        x = self.conv2(torch.cat([x, conds[1]], dim=1))
+        x = self.conv3(torch.cat([x, conds[2]], dim=1))
+        return x
+
+
+class CondANFCoderTCMEncCondOnly(CondAugmentedNormalizedFlowHyperPriorCoderPredPrior):
+    def __init__(self, feat_filters=[32, 64, 96], **kwargs):
+        super(CondANFCoderTCMEncCondOnly, self).__init__(**kwargs)
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        num_filters           = kwargs['num_filters']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        num_predprior_filters = kwargs['num_predprior_filters']
+        hyper_filters         = kwargs['hyper_filters']
+        num_hyperpriors       = kwargs['num_hyperpriors']
+
+        self.feat_filters = feat_filters
+
+        for i in range(num_layers):
+            self.__delattr__('analysis'+str(i))
+            self.add_module('analysis'+str(i), TCMAnalysisTransform(
+                in_channels=in_channels, num_features=num_features, num_filters=num_filters, kernel_size=kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode,
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1
+            ))
+            self.__delattr__('synthesis'+str(i))
+            self.add_module('synthesis'+str(i), TCMSynthesisTransform(
+                in_channels, num_features, num_filters, kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, 
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1
+            ))
+
+        self.hyper_analysis = TCMHyperAnalysisTransform(
+            num_features, hyper_filters, num_hyperpriors)
+
+        self.hyper_synthesis = TCMHyperSynthesisTransform(
+            num_features*self.conditional_bottleneck.condition_size, hyper_filters, num_hyperpriors) 
+
+        if num_predprior_filters is None:  # When not specifying, it will align to num_filters
+            num_predprior_filters = kwargs['num_filters']
+
+        if self.use_mean or "Mixture" in kwargs["condition"]:
+            self.pred_prior = TemporalPriorTCM(num_predprior_filters, 
+                                               kwargs['num_features'] * self.conditional_bottleneck.condition_size, 
+                                               self.feat_filters)
+
+            self.PA = nn.Sequential(
+                nn.Conv2d((kwargs['num_features'] * self.conditional_bottleneck.condition_size) * 2, 320, 3, padding=1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(320, 256, 3, padding=1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(256, kwargs['num_features'] * self.conditional_bottleneck.condition_size, 3, padding=1)
+            )
+        else:
+            raise ValueError
+
+        for name, m in self.named_children():
+            if "ana" in name  or "syn" in name:
+                m.name = name
+
+         
+    def encode(self, input, code=None, jac=None, visual=False, figname='', cond_coupling_input=None):
+        conds = cond_coupling_input
+
+        for i in range(self.num_layers):
+            debug('F', i)
+
+            _, code, jac = self['analysis'+str(i)](
+                input, conds, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+            
+            if i < self.num_layers-1:
+                debug('S', i)
+                input, _, jac = self['synthesis'+str(i)](
+                    input, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+
+            if visual:
+                logger.write(check_range(input, "X"+str(i)))
+                logger.write(check_range(code, "code"+str(i)))
+                logger.write()
+
+                channel_analysis(code, figname+f"_FCA_{i}.png")
+
+        return input, code, jac
+
+    def decode(self, input, code=None, jac=None, rec_code=False, visual=False, figname='', cond_coupling_input=None):
+        conds = cond_coupling_input
+
+        if self.get_decoded:
+            decoded = []
+
+        for i in range(self.num_layers-1, -1, -1):
+            debug('rF', i)
+                       
+            input, _, jac = self['synthesis'+str(i)](
+                input, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+
+            if self.get_decoded:
+                decoded.append(input)
+
+            if self.use_QE:
+                BQE = input
+                input = self['QE'+str(i)](input)
+                if visual:
+                    save_image(BQE, figname+f"_BQE_{i}.png")
+                    save_image(input, figname+f"_AQE_{i}.png")
+
+            if i or rec_code or jac is not None:
+                debug('RF', i)
+                _, code, jac = self['analysis'+str(i)](
+                    input, conds, code, jac, layer=i, rev=True, visual=visual, figname=figname+"_"+str(i))
+
+                #_, code, jac = self['analysis' +
+                #                    str(i)](input, code, jac, rev=True, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+
+            if visual:
+                logger.write(check_range(input, "X"+str(i)))
+                logger.write(check_range(code, "code"+str(i)))
+                logger.write()
+        
+        if self.get_decoded:
+            return input, code, jac, decoded
+        else:
+            return input, code, jac
+
+    def forward(self, input, code=None, jac=None, rec_code=False, rev_ng=False,
+                IDQ=False, detach_enc=False, visual=False, figname='',
+                output=None,  # Should assign value when self.output_nought==False
+                cond_coupling_input=None,  # Should assign value when self.cond_coupling==True
+                pred_prior_input=None  # cond_coupling_input will replace this when None
+               ):
+
+        if not self.output_nought:
+            assert not (output is None), "output should be specified"
+        if self.cond_coupling:
+            assert not (cond_coupling_input is None), "cond_coupling_input should be specified"
+         
+            if self.diff_condition:
+                assert len(cond_coupling_input)==self.num_layers, f"cond_coupling_input should be a list with length {self.num_layers}"
+
+        if pred_prior_input is None:
+            pred_prior_input = cond_coupling_input
+
+        # Encode
+        if IDQ:
+            debug("IDQ")
+            input = input.add(torch.rand_like(input).sub_(0.5).div_(255.))
+
+        ori_input = input
+
+        if visual:
+            save_image(input, figname + "_input.png")
+            if not (output is None):
+                save_image(output, figname + "_mc_frame.png")
+            visualizer.set_mean_var(input)
+            visualizer.queue_visual(input, figname + "_ori.png")
+            fft_visual(input, figname + "_ori.png")
+            logger.open(figname + "_stati.txt")
+            logger.write("min\tmedian\tmean\tvar\tmax\n")
+        
+        autoencoding_conds = cond_coupling_input
+
+        jac = [] if jac else None
+        input, code, jac = self.encode(
+            input, code, jac, visual=visual, figname=figname, cond_coupling_input=autoencoding_conds)
+
+        # Enrtopy coding
+        debug('E')
+
+        hyper_code = self.hyper_analysis(
+            code.abs() if self.use_abs else code)
+
+        z_tilde, z_likelihood = self.entropy_bottleneck(hyper_code)
+        # z_tilde = hyper_code
+
+        hp_feat = self.hyper_synthesis(z_tilde)
+        pred_feat = self.pred_prior(pred_prior_input)
+
+        condition = self.PA(torch.cat([hp_feat, pred_feat], dim=1))
+
+        y_tilde, y_likelihood = self.conditional_bottleneck(
+            code, condition=condition)
+
+        # y_tilde = code # No quantize on z2
+
+        # Encode distortion
+        # Y_error, _, jac = self['synthesis'+str(self.num_layers-1)](
+        x_2, _, jac = self['synthesis' + str(self.num_layers - 1)](
+            #input, autoencoding_conds, y_tilde, jac, last_layer=True, layer=self.num_layers - 1, visual=visual,
+            input, y_tilde, jac, last_layer=True, layer=self.num_layers - 1, visual=visual,
+            figname=figname + "_" + str(self.num_layers - 1))
+
+        if visual:
+            visualizer.plot_queue(figname + '_for.png', nrow=input.size(0))
+
+            with torch.no_grad():  # Visualize z likelihood
+                YLL_perC = y_likelihood[0].clamp_min(
+                    1e-9).log2().mean(dim=(1, 2)).neg()
+                fig = plt.figure()
+                check_range(YLL_perC, "YLL")
+                max_idx = YLL_perC.max(0)[1]
+                plt.plot(YLL_perC.data.cpu(),
+                         label="maxC=" + str(max_idx.item()))
+                plt.legend()
+
+                plt.savefig(figname + "_YLL.png")
+                plt.close(fig)
+
+            # Print feature ; code: z2, no quant ; y_tilde: \hat z2
+            #     nrow = 8
+            #     save_image(code.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_feature.png", nrow=nrow)
+            #     save_image(max_norm(code).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_feature_norm.png", nrow=nrow)
+            #     save_image(y_tilde.div(255*2).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_quant.png", nrow=nrow)
+            #     save_image(max_norm(y_tilde).add(0.5).flatten(0, 1).unsqueeze(
+            #         1), figname+"_quant_norm.png", nrow=nrow)
+
+            # logger.write(check_range(Y_error, "X"+str(self.num_layers-1)))
+            logger.write(check_range(x_2, "X" + str(self.num_layers - 1)))
+            logger.write(check_range(code, "code" + str(self.num_layers - 1)))
+            logger.write()
+
+        if self.entropy_bottleneck.quant_mode == "SGA" and self.training:
+            tau = self.entropy_bottleneck.SGA.tau.item() * 0.01
+            # input, code, hyper_code = Y_error*tau, y_tilde, z_tilde
+            input, code, hyper_code = x_2 * tau, y_tilde, z_tilde
+        else:
+            # input, code, hyper_code = torch.zeros_like(input), y_tilde, z_tilde
+            # input, code, hyper_code = x_2, y_tilde, z_tilde # x_2 directly backward
+            input, code, hyper_code = output, y_tilde, z_tilde  # Correct setting ; MC frame as x_2 when decoding
+
+        # input = Y_error
+        # debug(Y_error.shape, code.shape, hyper_code.shape)
+        debug(x_2.shape, code.shape, hyper_code.shape)
+
+        if visual:
+            logger.write(check_range(input, "X" + str(self.num_layers - 1)))
+            logger.write(check_range(code, "code" + str(self.num_layers - 1)))
+            logger.write()
+
+        # Decode
+        if self.get_decoded:
+            input, code, jac, decoded = self.decode(
+                input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=autoencoding_conds)
+        else:
+            input, code, jac = self.decode(
+                input, code, jac, rec_code=rec_code, visual=visual, figname=figname, cond_coupling_input=autoencoding_conds)
+
+        if visual:
+            visualizer.plot_queue(figname + '_rev.png', nrow=input.size(0))
+            logger.close()
+
+        # Quality enhancement
+        if self.DQ is not None:
+            debug("DQ")
+            BDQ = input
+            input = self.DQ(input)
+            if visual:
+                save_image(x_2, figname + "_x_2.png")
+                save_image(BDQ, figname + "_BDQ.png")
+                save_image(input, figname + "_ADQ.png")
+        else:
+            BDQ = None
+
+        debug('END\n')
+
+        if self.get_decoded:
+            return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ, decoded
+        else:
+            return input, (y_likelihood, z_likelihood), x_2, jac, code, BDQ
+
+
+class CondANFCoderTCM(FeatCondAugmentedNormalizedFlowHyperPriorCoderPredPriorGS):
+    def __init__(self, feat_filters=[32, 64, 96], **kwargs):
+        super(CondANFCoderTCM, self).__init__(**kwargs)
+        self.feat_filters = feat_filters
+
+        num_filters = kwargs['num_filters']
+        if not isinstance(num_filters, list):
+            num_filters = [num_filters]
+        if len(num_filters) < kwargs['num_layers']:
+            num_filters = [num_filters[0]] * kwargs['num_layers']
+
+        in_channels           = kwargs['in_channels']
+        num_features          = kwargs['num_features']
+        kernel_size           = kwargs['kernel_size']
+        use_code              = kwargs['use_code']
+        dec_add               = kwargs['dec_add']
+        init_code             = kwargs['init_code']
+        gdn_mode              = kwargs['gdn_mode']
+        use_attn              = kwargs['use_attn']
+        num_layers            = kwargs['num_layers']
+        num_cond_features     = kwargs['num_cond_features']
+        out_synthesis         = kwargs['out_synthesis']
+        gs_hidden             = kwargs['gs_hidden']
+        mc_decode_cond        = kwargs['mc_decode_cond']
+        in_channels_predprior = kwargs['in_channels_predprior']
+        hyper_filters         = kwargs['hyper_filters']
+        num_hyperpriors       = kwargs['num_hyperpriors']
+        num_predprior_filters = kwargs['num_predprior_filters']
+
+        for i in range(num_layers):
+            self.__delattr__('analysis'+str(i))
+            self.add_module('analysis'+str(i), TCMAnalysisTransform(
+                in_channels, num_features, num_filters[i], kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode,
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1
+            ))
+            self.__delattr__('synthesis'+str(i))
+            self.add_module('synthesis'+str(i), TCMCondSynthesisTransform(
+                in_channels=in_channels, num_features=num_features, num_filters=num_filters[i], kernel_size=kernel_size, 
+                use_code=use_code and i != num_layers-1 and not dec_add, 
+                distribution=init_code, gdn_mode=gdn_mode, 
+                cond_features=self.feat_filters,
+                use_attn=use_attn and i == num_layers-1
+            ))
+
+        self.hyper_analysis = TCMHyperAnalysisTransform(
+            num_features, hyper_filters, num_hyperpriors)
+
+        self.hyper_synthesis = TCMHyperSynthesisTransform(
+            num_features*self.conditional_bottleneck.condition_size, hyper_filters, num_hyperpriors) 
+
+        if num_predprior_filters is None:  # When not specifying, it will align to num_filters
+            num_predprior_filters = kwargs['num_filters']
+
+        if self.use_mean or "Mixture" in kwargs["condition"]:
+            self.pred_prior = TemporalPriorTCM(num_predprior_filters, 
+                                               kwargs['num_features'] * self.conditional_bottleneck.condition_size, 
+                                               self.feat_filters)
+
+            self.PA = nn.Sequential(
+                nn.Conv2d((kwargs['num_features'] * self.conditional_bottleneck.condition_size) * 2, 320, 3, padding=1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(320, 256, 3, padding=1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(256, kwargs['num_features'] * self.conditional_bottleneck.condition_size, 3, padding=1)
+            )
+        else:
+            raise ValueError
+
+        for name, m in self.named_children():
+            if "ana" in name  or "syn" in name:
+                m.name = name
+
+
+    def encode(self, input, code=None, jac=None, visual=False, figname='', cond_coupling_input=None):
+        for i in range(self.num_layers):
+            debug('F', i)
+            # Concat input with condition (MC frame)
+            if self.cond_coupling:
+                if self.diff_condition:
+                    cond = cond_coupling_input[i]
+                else:
+                    cond = cond_coupling_input
+                _, code, jac = self['analysis'+str(i)](
+                    input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+            else:
+                raise ValueError
+
+            if i < self.num_layers-1:
+                debug('S', i)
+                # if self.cond_coupling:
+                #     cond = cond_coupling_input
+                #     input, _, jac = self['synthesis'+str(i)](
+                #         input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+                # else:
+                #     input, _, jac = self['synthesis'+str(i)](
+                #         input, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+                    
+                if self.diff_condition:
+                    cond = cond_coupling_input[i]
+                else:
+                    cond = cond_coupling_input
+
+                input, _, jac = self['synthesis'+str(i)](
+                    input, cond, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+                
+                # input, _, jac = self['synthesis'+str(i)](
+                #         input, code, jac, layer=i, visual=visual, figname=figname+"_"+str(i))
+
+            if visual:
+                logger.write(check_range(input, "X"+str(i)))
+                logger.write(check_range(code, "code"+str(i)))
+                logger.write()
+
+                channel_analysis(code, figname+f"_FCA_{i}.png")
+
+        return input, code, jac
+    
+    def decode(self, input, code=None, jac=None, rec_code=False, visual=False, figname='', cond_coupling_input=None):
+        if self.get_decoded:
+            decoded = []
+
+        for i in range(self.num_layers-1, -1, -1):
+            debug('rF', i)
+            
+            # if self.cond_coupling:
+            #     cond = cond_coupling_input
+            #     input, _, jac = self['synthesis'+str(i)](
+            #         input, cond, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+            # else:
+            #     input, _, jac = self['synthesis'+str(i)](
+            #         input, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+                
+            if self.diff_condition:
+                cond = cond_coupling_input[i]
+            else:
+                cond = cond_coupling_input
+            input, _, jac = self['synthesis'+str(i)](
+                input, cond, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+            
+            # input, _, jac = self['synthesis'+str(i)](
+            #         input, code, jac, rev=True, last_layer=i == self.num_layers-1, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+
+            if self.get_decoded:
+                decoded.append(input)
+
+            if self.use_QE:
+                BQE = input
+                input = self['QE'+str(i)](input)
+                if visual:
+                    save_image(BQE, figname+f"_BQE_{i}.png")
+                    save_image(input, figname+f"_AQE_{i}.png")
+
+            if i or rec_code or jac is not None:
+                debug('RF', i)
+                # Concat input with condition (MC frame)
+                if self.cond_coupling:
+                    if self.diff_condition:
+                        cond = cond_coupling_input[i]
+                    else:
+                        cond = cond_coupling_input
+                    _, code, jac = self['analysis'+str(i)](
+                        input, cond, code, jac, layer=i, rev=True, visual=visual, figname=figname+"_rev_"+str(i))
+                else:
+                    raise ValueError
+                #_, code, jac = self['analysis' +
+                #                    str(i)](input, code, jac, rev=True, layer=i, visual=visual, figname=figname+"_rev_"+str(i))
+
+            if visual:
+                logger.write(check_range(input, "X"+str(i)))
+                logger.write(check_range(code, "code"+str(i)))
+                logger.write()
+
+        if self.get_decoded:
+            return input, code, jac, decoded
+        else:
+            return input, code, jac
+
+
 
 __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPriorCoder": GoogleIDFPriorCoder,
                    "GoogleHyperPriorCoder": GoogleHyperPriorCoder, "GoogleHyperPriorCoder2": GoogleHyperPriorCoder2,
@@ -9112,13 +10644,14 @@ __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPri
                    "CondANFHyperPriorCoder": CondAugmentedNormalizedFlowHyperPriorCoder,
                    "CondANFHyperPriorCoder2": CondAugmentedNormalizedFlowHyperPriorCoder2,
                    "CondANFHyperPriorCoderYUV": CondAugmentedNormalizedFlowHyperPriorCoderYUV,
-                   "SFTCondANFHyperPriorCoder": SFTCondAugmentedNormalizedFlowHyperPriorCoder,
+                   #"SFTCondANFHyperPriorCoder": SFTCondAugmentedNormalizedFlowHyperPriorCoder,
                    "Coarse2FineHyperPriorCoder": Coarse2FineHyperPriorCoder,
                    "GoogleContextCoder": GoogleContextCoder, "GoogleContextCoder2": GoogleContextCoder2, 
                    "CSTKContextCoder": CSTKContextCoder,
                    "GroupContextHPCoder": GroupContextHPCoder, "GroupContextCondANFIC": GroupContextCondANFIC,
                    "GroupContextCondANFICPredPrior": GroupContextCondANFICPredPrior,
                    "CondANFHyperPriorCoderPredPrior": CondAugmentedNormalizedFlowHyperPriorCoderPredPrior,
+                   "CondANFSelectPrior": CondANFSelectPrior,
                    "CondANFPredPriorZPrior": CondANFPredPriorZPrior,
                    "FeatCANF_3Down": FeatCANF_3Down,
                    "CondANFHyperPriorCoderPredPriorGetDecode": CondAugmentedNormalizedFlowHyperPriorCoderPredPriorGetDecode,
@@ -9142,6 +10675,10 @@ __CODER_TYPES__ = {"GoogleFactorizedCoder": GoogleFactorizedCoder, "GoogleIDFPri
                    "CondANFPredPriorDCVCBackboneCustom1": CondANFPredPriorDCVCBackboneCustom1,
                    "CondANFPredPriorDCVCBackboneCustom2": CondANFPredPriorDCVCBackboneCustom2,
                    "AsymmetricCANFResBlockPredPrior": AsymmetricCANFResBlockPredPrior,
+                   "CondSFTANFCoder": CondSFTANFCoder,
+                   "SFTANFCoder": SFTANFCoder,
+                   "CondANFCoderTCMEncCondOnly": CondANFCoderTCMEncCondOnly,
+                   "CondANFCoderTCM": CondANFCoderTCM
                   }
 
 

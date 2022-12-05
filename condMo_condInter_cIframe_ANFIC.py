@@ -41,9 +41,9 @@ phase = {'trainMV': 10,
          'trainMC': 13,
          'trainRes_2frames': 23, 
          'trainAll_2frames': 33, 
-         'trainAll_fullgop': 38, 
-         'trainAll_RNN_1': 41, 
-         'trainAll_RNN_2': 44,
+         'trainAll_fullgop': 60, 
+         'trainAll_RNN_1': 63, 
+         'trainAll_RNN_2': 65,
          'train_aux': 100}
 
 
@@ -178,6 +178,7 @@ class Pframe(CompressesModel):
             likelihoods = likelihood_m
             data = {'likelihood_m': likelihood_m, 
                     'flow': flow, 'flow_hat': flow_hat, 
+                    'warped_frame': warped_frame,
                     'pred_frame': pred_frame, 'pred_flow': pred_flow, 
                     'pred_flow_hat': pred_flow_hat}
 
@@ -190,8 +191,8 @@ class Pframe(CompressesModel):
             self.MWNet.append_flow(flow_hat.detach())
 
             likelihoods = likelihood_m
-            data = {'likelihood_m': likelihood_m, 'flow': flow, 'flow_hat': flow_hat}
-
+            data = {'likelihood_m': likelihood_m, 'warped_frame': warped_frame, 'flow': flow, 'flow_hat': flow_hat}
+                    
         return mc, likelihoods, data
 
     def forward(self, ref_frame, coding_frame, p_order=0, visual=False, visual_prefix='', predict=False):
@@ -411,9 +412,13 @@ class Pframe(CompressesModel):
             self.requires_grad_(True)
             self.MENet.requires_grad_(False)
             self.MWNet.requires_grad_(False)
+            self.Motion.requires_grad_(False)
+            self.CondMotion.requires_grad_(False)
+            self.MCNet.requires_grad_(False)
 
-            if self.args.restore == 'finetune' or  self.args.restore == 'custom':
+            if self.args.restore == 'finetune': # or  self.args.restore == 'custom':
                 self.requires_grad_(True)
+
             self.cIframe_model.analysis0.requires_grad_(False)
             self.cIframe_model.synthesis0.requires_grad_(False)
             self.cIframe_model.analysis1.requires_grad_(False)
@@ -429,7 +434,7 @@ class Pframe(CompressesModel):
             self.frame_buffer = []
             frame_count = 0
 
-            cIframe_idx = 5
+            cIframe_idx = [3, 4, 5]
 
             self.MWNet.clear_buffer()
 
@@ -445,16 +450,19 @@ class Pframe(CompressesModel):
 
                 coding_frame = batch[:, frame_idx]
 
-                if frame_idx == 1:
-                    self.frame_buffer = [ref_frame]
-                    mc, likelihood_m, _ = self.motion_forward(ref_frame, coding_frame, predict=False)
-                else:
-                    mc, likelihood_m, data_1 = self.motion_forward(ref_frame, coding_frame, predict=True)
+                #with torch.set_grad_enabled(not (frame_idx in cIframe_idx)):
+                with torch.no_grad():
+                    if frame_idx == 1:
+                        self.frame_buffer = [ref_frame]
+                        mc, likelihood_m, _ = self.motion_forward(ref_frame, coding_frame, predict=False)
+                    else:
+                        mc, likelihood_m, data_1 = self.motion_forward(ref_frame, coding_frame, predict=True)
 
-                if frame_idx == cIframe_idx:
+                if frame_idx in cIframe_idx:
                     reconstructed, likelihood_r, mc_hat, _, _, _ = self.cIframe_model(coding_frame, cond_coupling_input=mc, output=None)
                 else:
-                    reconstructed, likelihood_r, mc_hat, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc, output=mc)
+                    with torch.no_grad():
+                        reconstructed, likelihood_r, mc_hat, _, _, _ = self.Residual(coding_frame, cond_coupling_input=mc, output=mc)
 
                 likelihoods = likelihood_m + likelihood_r
 
@@ -465,7 +473,7 @@ class Pframe(CompressesModel):
                 if self.args.ssim:
                     distortion = (1 - distortion)/64
 
-                if frame_idx == cIframe_idx:
+                if frame_idx in cIframe_idx:
                     mc_error = nn.MSELoss(reduction='none')(mc, torch.zeros_like(mc_hat))
                 else:
                     mc_error = nn.MSELoss(reduction='none')(mc, mc_hat)
@@ -568,8 +576,9 @@ class Pframe(CompressesModel):
                     mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
                                                                        align.align(coding_frame), predict=True)
                 
-                if frame_idx == 0:
-                    rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe(align.align(coding_frame), output=None,
+                #if frame_idx == 0:
+                if True:
+                    rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe_model(align.align(coding_frame), output=None,
                                                                                cond_coupling_input=mc_frame)
                 else:
                     rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
@@ -612,10 +621,10 @@ class Pframe(CompressesModel):
                     flow_hat = align.resume(data['flow_hat'])
                     flow_rgb = torch.from_numpy(
                         fz.convert_from_flow(flow_hat[0].permute(1, 2, 0).cpu().numpy()) / 255).permute(2, 0, 1)
-                    upload_img(flow_rgb.cpu().numpy(), f'{seq_name}_{epoch}_dec_flow_{frame_idx}.png', grid=False)
+                    upload_img(flow_rgb.cpu().numpy(), f'{seq_name}_{epoch}_dec_flow_{int(frame_id + frame_idx)}.png', grid=False)
                     
-                    upload_img(ref_frame.cpu().numpy()[0], f'{seq_name}_{epoch}_ref_frame_{frame_idx}.png', grid=False)
-                    upload_img(coding_frame.cpu().numpy()[0], f'{seq_name}_{epoch}_gt_frame_{frame_idx}.png', grid=False)
+                    upload_img(ref_frame.cpu().numpy()[0], f'{seq_name}_{epoch}_ref_frame_{int(frame_id + frame_idx)}.png', grid=False)
+                    upload_img(coding_frame.cpu().numpy()[0], f'{seq_name}_{epoch}_gt_frame_{int(frame_id + frame_idx)}.png', grid=False)
                     upload_img(mc_frame.cpu().numpy()[0], seq_name + '_{:d}_mc_frame_{:d}_{:.3f}.png'.format(epoch, frame_idx, mc_psnr),
                                grid=False)
                     upload_img(rec_frame.cpu().numpy()[0], seq_name + '_{:d}_rec_frame_{:d}_{:.3f}.png'.format(epoch, frame_idx, psnr),
@@ -743,20 +752,21 @@ class Pframe(CompressesModel):
         log_list = []
         align = trc.util.Alignment()
 
-
         for frame_idx in range(gop_size):
-            ref_frame = ref_frame.clamp(0, 1)
             TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
-            #TO_VISUALIZE = frame_id_start == 1
+
             if int(frame_id + frame_idx) != 1:
+                if frame_idx == 0:
+                    ref_frame = self.frame_buffer[-1]
+
+                ref_frame = ref_frame.clamp(0, 1)
+
                 coding_frame = batch[:, frame_idx]
                 
-
-                self.frame_buffer.append(rec_frame.clamp(0, 1).detach())
                 # reconstruced frame will be next ref_frame
                 if False and TO_VISUALIZE:
-                    os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
-                                exist_ok=True)
+                    os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'), exist_ok=True)
+
                     if int(frame_id + frame_idx) == 2:
                         self.frame_buffer = [align.align(ref_frame)]
                         mc_frame, likelihood_m, data = self.motion_forward(align.align(ref_frame),
@@ -766,7 +776,7 @@ class Pframe(CompressesModel):
                                                                            align.align(coding_frame), predict=True)
 
                     if frame_idx == 0:
-                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe(align.align(coding_frame), output=None,
+                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe_model(align.align(coding_frame), output=None,
                                                                                    cond_coupling_input=mc_frame,
                                                                                    visual=True, 
                                                                                    figname=os.path.join(
@@ -813,7 +823,7 @@ class Pframe(CompressesModel):
                                                                            align.align(coding_frame), predict=True)
 
                     if frame_idx == 0:
-                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe(align.align(coding_frame), output=None,
+                        rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.cIframe_model(align.align(coding_frame), output=None,
                                                                                    cond_coupling_input=mc_frame)
                     else:
                         rec_frame, likelihood_r, mc_hat, _, _, BDQ = self.Residual(align.align(coding_frame), output=mc_frame,
@@ -889,6 +899,7 @@ class Pframe(CompressesModel):
                                                                f'frame_{int(frame_id_start + frame_idx)}.png')
 
                 rate = trc.estimate_bpp(likelihoods, input=ref_frame).mean().item()
+
                 mse = self.criterion(ref_frame, batch[:, frame_idx]).mean().item()
                 if self.args.ssim:
                     psnr = mse
@@ -929,6 +940,7 @@ class Pframe(CompressesModel):
 
             else: 
                 self.MWNet.clear_buffer()
+                ref_frame = ref_frame.clamp(0, 1)
 
                 with torch.no_grad():
                     rec_frame, likelihoods, _, _, _, _ = self.if_model(align.align(batch[:, frame_idx]))
@@ -963,10 +975,11 @@ class Pframe(CompressesModel):
 
                 log_list.append({'PSNR': psnr, 'Rate': rate})
 
+            print(int(frame_id + frame_idx), psnr, rate)
             metrics['PSNR'].append(psnr)
             metrics['Rate'].append(rate)
 
-            frame_id += 1
+            #frame_id += 1
 
         for m in metrics_name:
             metrics[m] = np.mean(metrics[m])
@@ -1184,7 +1197,7 @@ class Pframe(CompressesModel):
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
-            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U'), GOP=self.args.test_GOP)
+            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B'), GOP=self.args.test_GOP)
 
         else:
             raise NotImplementedError
@@ -1432,13 +1445,32 @@ if __name__ == '__main__':
                                              check_val_every_n_epoch=1,
                                              num_sanity_val_steps=0,
                                              terminate_on_nan=True)
-
-        checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "cf8be0b8102c4a6eb2015b58f184f757", "checkpoints",
-                                             "epoch=83.ckpt"), map_location=(lambda storage, loc: storage))
         
-        cIframe_ckpt = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", "7623054c03a642efbabfcbaa15c6f5f2", "checkpoints",
-                                             "epoch=35.ckpt"), map_location=(lambda storage, loc: storage))
+        # Note: With RNN-based training
+        canfvc_ckpt_key = {
+                           2048: "7a2fe609d85546a68634bcced60d322f",
+                           1024: "89cbee9e8ec7400a9f73f2c12adf9373",
+                           512: "6080042735084411b0a4cb852122d220",
+                           256: "33c8e35cb4c74b99a332cb8f26baa16d",
+                          }[args.lmda]
+        canfvc_ckpt_epoch = {
+                           2048: 35,
+                           1024: 35,
+                           512: 35,
+                           256: 35,
+                          }[args.lmda]
+        checkpoint = torch.load(os.path.join(save_root, "ANF-based-resCoder-for-DVC", canfvc_ckpt_key, "checkpoints",
+                                             f"epoch={canfvc_ckpt_epoch}.ckpt"), map_location=(lambda storage, loc: storage))
         
+        epoch_num = args.restore_exp_epoch
+        if args.restore_exp_key is None:
+            raise ValueError
+        else:  # When prev_exp_key is specified in args
+            cIframe_ckpt = torch.load(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
+                                                 f"epoch={epoch_num}.ckpt"),
+                                    map_location=(lambda storage, loc: storage))
+            print(os.path.join(save_root, project_name, args.restore_exp_key, "checkpoints",
+                                                 f"epoch={epoch_num}.ckpt"))
         trainer.current_epoch = phase['trainAll_2frames']
 
         from collections import OrderedDict
@@ -1447,29 +1479,32 @@ if __name__ == '__main__':
         for k, v in checkpoint['state_dict'].items():
             new_ckpt[k] = v
 
+        for k, v in cIframe_ckpt['state_dict'].items():
+            if k.split('.')[0] == 'Residual': # and not (k.split('.')[1][:3] == 'ana' or k.split('.')[1][:3] == 'syn' or k.split('.')[1][:2] == 'DQ'):
+                key = '.'.join(['cIframe_model'] + k.split('.')[1:])
+                new_ckpt[key] = v
+            #else:
+            #    new_ckpt[k] = v
+
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
 
         for k, v in coder_ckpt.items():
             key = 'if_model.' + k
             new_ckpt[key] = v
-            if k.split('.')[0][:3] == 'ana' or k.split('.')[0][:3] == 'syn' or k.split('.')[0][:2] == 'DQ':
-                key = 'cIframe_model.' + k
-                new_ckpt[key] = v
+            #if k.split('.')[0][:3] == 'ana' or k.split('.')[0][:3] == 'syn' or k.split('.')[0][:2] == 'DQ':
+            #    key = 'cIframe_model.' + k
+            #    new_ckpt[key] = v
 
-        for k, v in cIframe_ckpt['state_dict'].items():
-            if k.split('.')[0] == 'Residual':
-                key = '.'.join(['cIframe_model'] + k.split('.')[1:])
-                new_ckpt[key] = v
 
         model = Pframe(args, cIframe_coder, mo_coder, cond_mo_coder, res_coder).cuda()
         model.load_state_dict(new_ckpt, strict=True)
         
-        model.cIframe_model.analysis0 = model.if_model.analysis0
-        model.cIframe_model.analysis1 = model.if_model.analysis1
-        model.cIframe_model.syntheysis0 = model.if_model.synthesis0
-        model.cIframe_model.syntheysis1 = model.if_model.synthesis1
-        model.cIframe_model.DQ = model.if_model.DQ
+        #model.cIframe_model.analysis0 = model.if_model.analysis0
+        #model.cIframe_model.analysis1 = model.if_model.analysis1
+        #model.cIframe_model.syntheysis0 = model.if_model.synthesis0
+        #model.cIframe_model.syntheysis1 = model.if_model.synthesis1
+        #model.cIframe_model.DQ = model.if_model.DQ
 
     else:
         trainer = Trainer.from_argparse_args(args,

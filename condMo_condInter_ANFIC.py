@@ -709,7 +709,7 @@ class Pframe(CompressesModel):
         return None
 
     def test_step(self, batch, batch_idx):
-        metrics_name = ['PSNR', 'Rate', 'Mo_Rate', 'MC-PSNR', 'MCrec-PSNR', 'MCerr-PSNR', 'BDQ-PSNR', 'QE-PSNR',
+        metrics_name = ['PSNR', 'Rate', 'Mo_Rate', 'Res_Rate', 'MC-PSNR', 'MCrec-PSNR', 'MCerr-PSNR', 'BDQ-PSNR', 'QE-PSNR',
                         'back-PSNR', 'p1-PSNR', 'p1-BDQ-PSNR']
         metrics = {}
         for m in metrics_name:
@@ -717,6 +717,7 @@ class Pframe(CompressesModel):
         # PSNR: PSNR(gt, ADQ)
         # Rate
         # Mo_Rate: Motion Rate
+        # Res_Rate: Inter-coder Rate
         # MC-PSNR: PSNR(gt, mc_frame)
         # MCrec-PSNR: PSNR(gt, x_2)
         # MCerr-PSNR: PSNR(x_2, mc_frame)
@@ -779,21 +780,21 @@ class Pframe(CompressesModel):
                                                                                     f'frame_{frame_idx}',
                                                                                ))
                 else:
-                    if frame_idx != 1:
-                        def dummy_inputs(res):
-                            inputs = torch.ones(res).cuda()
-                            return {
-                                    'ref_frame': inputs, 
-                                    'coding_frame': inputs, 
-                                    'p_order': 0, 
-                                    'visual': False, 
-                                    'visual_prefix': '', 
-                                    'predict': True,
-                            }
-                        
-                        macs, params = get_model_complexity_info(self, tuple(align.align(ref_frame).shape), input_constructor=dummy_inputs)
-                        print(macs)
-                        print(torch.cuda.memory_summary())
+                    #if frame_idx != 1:
+                    #    def dummy_inputs(res):
+                    #        inputs = torch.ones(res).cuda()
+                    #        return {
+                    #                'ref_frame': inputs, 
+                    #                'coding_frame': inputs, 
+                    #                'p_order': 0, 
+                    #                'visual': False, 
+                    #                'visual_prefix': '', 
+                    #                'predict': True,
+                    #        }
+                    #    
+                    #    macs, params = get_model_complexity_info(self, tuple(align.align(ref_frame).shape), input_constructor=dummy_inputs)
+                    #    print(macs)
+                    #    print(torch.cuda.memory_summary())
 
                     # continue
                     if frame_idx == 1:
@@ -888,6 +889,10 @@ class Pframe(CompressesModel):
                          trc.estimate_bpp(likelihoods[1], input=ref_frame).mean().item()
                 metrics['Mo_Rate'].append(m_rate)
 
+                r_rate = trc.estimate_bpp(likelihoods[2], input=ref_frame).mean().item() + \
+                         trc.estimate_bpp(likelihoods[3], input=ref_frame).mean().item()
+                metrics['Res_Rate'].append(r_rate)
+
                 mc_psnr = mse2psnr(self.criterion(warped_frame, coding_frame).mean().item())
                 metrics['MC-PSNR'].append(mc_psnr)
 
@@ -949,10 +954,9 @@ class Pframe(CompressesModel):
 
                 log_list.append({'PSNR': psnr, 'Rate': rate})
 
+            print(int(frame_id + frame_idx), psnr, rate)
             metrics['PSNR'].append(psnr)
             metrics['Rate'].append(rate)
-
-            frame_id += 1
 
         for m in metrics_name:
             metrics[m] = np.mean(metrics[m])
@@ -1171,7 +1175,7 @@ class Pframe(CompressesModel):
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M', 'C', 'D', 'E'))
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M'), first_gop=True)
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('C', 'D', 'E'))
-            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'M'), GOP=self.args.test_GOP)
+            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B'), GOP=self.args.test_GOP)
 
         else:
             raise NotImplementedError
@@ -1497,7 +1501,7 @@ if __name__ == '__main__':
     #summary(model.CondMotion)
     #summary(model.Residual)
     #summary(model)
-    print(model)
+
     if args.test:
         trainer.test(model)
     else:

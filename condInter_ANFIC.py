@@ -428,7 +428,7 @@ class Pframe(CompressesModel):
         return None
 
     def test_step(self, batch, batch_idx):
-        metrics_name = ['PSNR', 'Rate', 'Mo_Rate', 'MC-PSNR', 'MCrec-PSNR', 'MCerr-PSNR', 'BDQ-PSNR', 'QE-PSNR', 'back-PSNR',
+        metrics_name = ['PSNR', 'Rate', 'Mo_Rate', 'Res_Rate', 'MC-PSNR', 'MCrec-PSNR', 'MCerr-PSNR', 'BDQ-PSNR', 'QE-PSNR',
                         'p1-PSNR', 'p1-BDQ-PSNR']
         metrics = {}
         for m in metrics_name:
@@ -436,6 +436,7 @@ class Pframe(CompressesModel):
         # PSNR: PSNR(gt, ADQ)
         # Rate
         # Mo_Rate: Motion Rate
+        # Res_Rate: Inter-coder Rate
         # MC-PSNR: PSNR(gt, mc_frame)
         # MCrec-PSNR: PSNR(gt, x_2)
         # MCerr-PSNR: PSNR(x_2, mc_frame)
@@ -550,6 +551,10 @@ class Pframe(CompressesModel):
                 m_rate = trc.estimate_bpp(likelihoods[0], input=ref_frame).mean().item() + \
                          trc.estimate_bpp(likelihoods[1], input=ref_frame).mean().item()
                 metrics['Mo_Rate'].append(m_rate)
+
+                r_rate = trc.estimate_bpp(likelihoods[2], input=ref_frame).mean().item() + \
+                         trc.estimate_bpp(likelihoods[3], input=ref_frame).mean().item()
+                metrics['Res_Rate'].append(r_rate)
 
                 mc_psnr = mse2psnr(self.criterion(mc_frame, coding_frame).mean().item())
                 metrics['MC-PSNR'].append(mc_psnr)
@@ -790,8 +795,8 @@ class Pframe(CompressesModel):
             self.val_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, first_gop=True)
 
         elif stage == 'test':
-            #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B', 'C', 'D', 'E', 'M'))
-            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U_small'), GOP=32)
+            self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U', 'B'), GOP=32)
+            #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('U_small'), GOP=32)
             #self.test_dataset = VideoTestDataIframe(dataset_root, self.args.lmda, sequence=('C', 'D', 'E'))
         else:
             raise NotImplementedError

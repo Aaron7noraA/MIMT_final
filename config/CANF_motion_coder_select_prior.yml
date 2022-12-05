@@ -1,8 +1,8 @@
 ---
-model_architecture: AsymmetricCANFResBlockPredPrior
+model_architecture: CondANFSelectPrior
 
 model_params:
-    num_filters: [128, 96, 96, 96]
+    num_filters: 128
     num_features: 128
     num_hyperpriors: 128
     hyper_filters: 128

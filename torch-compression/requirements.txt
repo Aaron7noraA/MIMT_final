@@ -17,4 +17,3 @@ flowiz==2.4.0
 seaborn==0.11.2
 ptflops==0.6.9
 thop==0.1.1.post2207130030
-torchinfo==1.7.0

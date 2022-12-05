@@ -143,6 +143,8 @@ class VideoDataIframe(VideoData):
         #self.folder = glob(root + 'img/00014/0818/')
         self.mode = mode
         self.bpg = bpg
+        if self.bpg:
+            print('Warning: Using BPG I-frame')
         self.Iframe_dir = 'Iframe{}'.format(self.mode.split('_')[0])
 
         black_seqs = []
@@ -181,7 +183,7 @@ class VideoTestDataIframe(torchData):
     def __init__(self, root, lmda, first_gop=False, sequence=('U', 'B'), GOP=12):
         super(VideoTestDataIframe, self).__init__()
         
-        assert GOP in [12, 16, 32], ValueError
+        assert GOP in [12, 16, 20, 32], ValueError
         self.root = root
         self.lmda = lmda
         #self.qp = {256: 37, 512: 32, 1024: 27, 2048: 22, 4096: 22}[lmda]
@@ -192,7 +194,7 @@ class VideoTestDataIframe(torchData):
         dataset_name_list = []
         if 'U' in sequence:
             self.seq_name.extend(['Beauty', 'Bosphorus', 'HoneyBee', 'Jockey', 'ReadySteadyGo', 'ShakeNDry', 'YachtRide'])
-            if GOP in [12, 16]:
+            if GOP in [12, 16, 20]:
                 seq_len.extend([600, 600, 600, 600, 600, 300, 600])
             else:
                 seq_len.extend([96]*7)
@@ -207,7 +209,7 @@ class VideoTestDataIframe(torchData):
             #dataset_name_list.extend(['UVG'])
         if 'B' in sequence:
             self.seq_name.extend(['Kimono1', 'BQTerrace', 'Cactus', 'BasketballDrive', 'ParkScene'])
-            if GOP in [12, 16]:
+            if GOP in [12, 16, 20]:
                 seq_len.extend([100]*5)
                 if GOP == 12:
                     GOP=10

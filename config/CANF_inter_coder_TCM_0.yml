@@ -1,6 +1,6 @@
 ---
-model_architecture: CondANFPredPriorDCVCBackbone
-    
+model_architecture: CondANFCoderTCM
+
 model_params:
     num_filters: 64
     num_features: 96
@@ -9,7 +9,7 @@ model_params:
     gdn_mode: standard
     in_channels: 3
     out_channels: 3
-    kernel_size: 5
+    kernel_size: 3
     num_layers: 2
     init_code: gaussian
     use_DQ: True
@@ -24,7 +24,7 @@ model_params:
     quant_mode: RUN
     output_nought: True
     cond_coupling: True
-    num_cond_frames: 1
+    feat_filters: [64, 64, 64]
     in_channels_predprior: 64
     num_predprior_filters: 64
     num_cond_features: 64

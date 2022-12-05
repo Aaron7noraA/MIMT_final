@@ -1,15 +1,15 @@
 ---
-model_architecture: AsymmetricCANFResBlockPredPrior
+model_architecture: CondANFSelectPrior
 
 model_params:
-    num_filters: [128, 96, 96, 96]
+    num_filters: 128
     num_features: 128
     num_hyperpriors: 128
-    hyper_filters: 128
+    hyper_filters: 192
     gdn_mode: standard
-    in_channels: 2
-    out_channels: 2
-    kernel_size: 3
+    in_channels: 3
+    out_channels: 3
+    kernel_size: 5
     num_layers: 2
     init_code: gaussian
     use_DQ: True
