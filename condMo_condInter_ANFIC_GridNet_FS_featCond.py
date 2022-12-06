@@ -41,8 +41,8 @@ phase = {'trainMV': 5,
          'trainRes_2frames_RecOnly': 11, 
          'trainRes_2frames': 18, 
          'trainAll_2frames': 24, 
-         'trainAll_fullgop': 32, 
-         'trainAll_RNN_1': 36, 
+         'trainAll_fullgop': 28, 
+         'trainAll_RNN_1': 30, 
          'trainAll_RNN_2': 40, 
          'trainEM': 50,
          'train_aux': 100}
@@ -1394,7 +1394,7 @@ if __name__ == '__main__':
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
                                              num_sanity_val_steps=0,
-                                             limit_train_batches=0.5,
+                                             limit_train_batches=0.25,
                                              terminate_on_nan=True)
 
         epoch_num = args.restore_exp_epoch
@@ -1444,7 +1444,6 @@ if __name__ == '__main__':
             checkpoint['state_dict'][key] = v
 
         model = Pframe(args, mo_coder, cond_mo_coder, res_coder).cuda()
-        # model.load_state_dict(new_ckpt, strict=False)
         model.load_state_dict(checkpoint['state_dict'], strict=True)
         #summary(model.Residual.DQ)
     

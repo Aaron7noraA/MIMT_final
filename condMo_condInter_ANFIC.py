@@ -753,8 +753,10 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['Beauty', 'Kimono1', 'HoneyBee', 'Jockey']
             #TO_VISUALIZE = frame_id_start == 1
+            if not TO_VISUALIZE:
+                continue
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
@@ -967,6 +969,7 @@ class Pframe(CompressesModel):
 
 
     def test_epoch_end(self, outputs):
+        exit()
         # dataset_name = {'HEVC-B': ['BasketballDrive', 'BQTerrace', 'Cactus', 'Kimono1', 'ParkScene'],
         #                 'UVG': ['Beauty', 'Bosphorus', 'HoneyBee', 'Jockey', 'ReadySteadyGo', 'ShakeNDry', 'YachtRide'],
         #                 'HEVC-C': ['BasketballDrill', 'BQMall', 'PartyScene', 'RaceHorses'],

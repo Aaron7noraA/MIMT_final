@@ -657,12 +657,14 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 and seq_name in ['BasketballDrive', 'Kimono1', 'HoneyBee', 'Jockey']
+            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['Beauty', 'Kimono1', 'HoneyBee', 'Jockey']
+            if not TO_VISUALIZE:
+                continue
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
                 # reconstruced frame will be next ref_frame
-                if TO_VISUALIZE:
+                if False and TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
                                 exist_ok=True)
                     if frame_idx == 1:
@@ -757,7 +759,6 @@ class Pframe(CompressesModel):
                 m_rate = trc.estimate_bpp(likelihoods[0], input=ref_frame).mean().item() + \
                          trc.estimate_bpp(likelihoods[1], input=ref_frame).mean().item()
                 metrics['Mo_Rate'].append(m_rate)
-                print(m_rate)
 
                 BDQ_psnr = mse2psnr(self.criterion(BDQ, coding_frame).mean().item())
                 metrics['BDQ-PSNR'].append(BDQ_psnr)
@@ -1214,7 +1215,7 @@ if __name__ == '__main__':
         if args.restore == 'resume':
             trainer.current_epoch = epoch_num + 1
         else:
-            trainer.current_epoch = phase['trainAll_2frames']
+            trainer.current_epoch = phase['trainAll_fullgop']
 
         coder_ckpt = torch.load(os.path.join(os.getenv('LOG', './'), f"ANFIC/ANFHyperPriorCoder_{ANFIC_code}/model.ckpt"),
                                 map_location=(lambda storage, loc: storage))['coder']
@@ -1236,7 +1237,7 @@ if __name__ == '__main__':
                                              default_root_dir=save_root,
                                              check_val_every_n_epoch=1,
                                              num_sanity_val_steps=0,
-                                             limit_train_batches=0.5,
+                                             limit_train_batches=0.25,
                                              terminate_on_nan=True)
 
         
