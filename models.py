@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 import torch_compression as trc
 import util.functional as FE
+from torch_compression.modules import Conv2d, ConvTranspose2d
 from obmc import OPMC
 from util.sampler import shift, warp, Resampler
 
@@ -374,6 +375,76 @@ class MMC_Net(nn.Module):
         output = self.conv5(x) + mc_frame
         
         return output
+
+
+class AttMapSoftmax(nn.Module):
+    def __init__(self, in_channels=3, out_channels=3):
+        super(AttMapSoftmax, self).__init__()
+        self.conv1_1_map = Conv2d(in_channels, 32, 3, stride=1)
+        self.conv1_2_map = Conv2d(32, 32, 3, stride=1)
+        self.conv1_3_map = Conv2d(64, 32, 3, stride=1)
+        self.conv1_4_map = Conv2d(32, 32, 3, stride=1)
+
+        self.conv2_1_map = Conv2d(32, 64, 3, stride=1)
+        self.conv2_2_map = Conv2d(64, 64, 3, stride=1)
+        self.conv2_3_map = Conv2d(128, 64, 3, stride=1)
+        self.conv2_4_map = Conv2d(64, 64, 3, stride=1)
+
+        self.conv3_1_map = Conv2d(64, 128, 3, stride=1)
+        self.conv3_2_map = Conv2d(128, 128, 3, stride=1)
+        self.conv3_3_map = Conv2d(128, 128, 3, stride=1)
+        
+        self.conv_final_map3 = Conv2d(32, out_channels, 1, stride=1)
+
+        self.ds1 = nn.MaxPool2d(5, padding=2, stride=2)
+        self.ds2 = nn.MaxPool2d(5, padding=2, stride=2)
+        self.us1 = ConvTranspose2d(64, 32, 3, stride=2)
+        self.us2 = ConvTranspose2d(128, 64, 3, stride=2)
+
+        self.activ = torch.nn.Softmax(dim=1)
+
+    def forward(self, x):
+        map = nn.ReLU()(self.conv1_1_map(x))
+        map_1 = nn.ReLU()(self.conv1_2_map(map))
+
+        map = self.ds1(map_1)  # 128->128
+        map = nn.ReLU()(self.conv2_1_map(map))  # 128->256
+        map_2 = nn.ReLU()(self.conv2_2_map(map))  # 256->256
+
+        map = self.ds2(map_2)  # 256->256
+        map = nn.ReLU()(self.conv3_1_map(map))  # 256->512
+        map = nn.ReLU()(self.conv3_2_map(map))  # 512
+        map = nn.ReLU()(self.conv3_3_map(map))  # 512
+
+        map = self.us2(map)  # 512->256
+        map = nn.ReLU()(self.conv2_3_map(torch.cat((map_2, map), 1)))  # 512->256
+        map = nn.ReLU()(self.conv2_4_map(map))  # 256->256
+
+        map = self.us1(map)  # 256->128
+        map = nn.ReLU()(self.conv1_3_map(torch.cat((map_1, map), 1)))  # 256->128
+        map = nn.ReLU()(self.conv1_4_map(map))  # 128->128
+
+        map = self.activ(self.conv_final_map3(map))  # 128->1
+
+        return map
+
+
+class MultiFrameMergeNet(nn.Module):
+    def __init__(self, in_channels=9, out_channels=3):
+        super(MultiFrameMergeNet, self).__init__()
+        self.att_map_softmax = AttMapSoftmax(in_channels, out_channels)
+
+    def forward(self, x_ls, x_previous, x_future):
+
+        map = self.att_map_softmax(torch.cat((x_ls.detach(), x_previous, x_future), 1))  # 128->1
+        x_ls_map = (x_ls * torch.unsqueeze(map[:, 0, :, :], 1))
+        x_previous_map = (x_previous * torch.unsqueeze(map[:, 1, :, :], 1))
+        x_future_map = (x_future * torch.unsqueeze(map[:, 2, :, :], 1))
+
+        out = x_ls_map + x_previous_map + x_future_map
+
+        return out, x_ls_map, x_previous_map, x_future_map, map
+
 
 use_signalconv = True
 simplified_gdn = False

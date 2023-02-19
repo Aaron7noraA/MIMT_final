@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numbers
 import random
 
@@ -51,7 +52,7 @@ def get_coder_named_params(m):
     return params, quants
 
 
-def estimate_bpp(likelihood, num_pixels=None, input=None, likelihood_bound: float = 1e-9):
+def estimate_bpp(likelihood, num_pixels=None, input=None, likelihood_bound: float = 1e-9, mask=None):
     """estimate bits-per-pixel
 
     Args:
@@ -59,15 +60,22 @@ def estimate_bpp(likelihood, num_pixels=None, input=None, likelihood_bound: floa
             ensured to be greater than or equal to this value. This prevents very
             large gradients with a typical entropy loss (defaults to 1e-9).
     """
-    if num_pixels is None:
+    if mask is not None:
+        num_pixels = mask.int().cpu().sum().numpy().item() * 16 * 16 / mask.size(0)
+    elif num_pixels is None:
         assert torch.is_tensor(input) and input.dim() > 2
         num_pixels = np.prod(input.size()[-2:])
+
     assert isinstance(num_pixels, numbers.Number), type(num_pixels)
     if torch.is_tensor(likelihood):
         likelihood = [likelihood]
     lll = 0
     for ll in likelihood:
-        lll = lll + lower_bound(ll, likelihood_bound).log().flatten(1).sum(1)
+        log_ll = lower_bound(ll, likelihood_bound).log() 
+        if not (mask is None):
+            log_ll = log_ll * mask
+
+        lll = lll + log_ll.flatten(1).sum(1)
     return lll / (-np.log(2.) * num_pixels)
 
 
@@ -90,11 +98,14 @@ class EntropyModel(nn.Module):
     """
 
     quant_modes = ["noise", "universal", "round",
-                   "RUN", "SGA", "RSGA", "UQ", "pass"]
+                   "RUN", "SGA", "RSGA", "UQ", "pass",
+                   "estUN_outR" # Uniform noise for entropy estimation, roundint for output
+                  ]
 
     def __init__(self, quant_mode="noise", tail_mass=2 ** -8, range_coder_precision=16):
         super(EntropyModel, self).__init__()
         assert quant_mode in self.quant_modes
+
         self.quant_mode = quant_mode
         if quant_mode == "SGA":
             self.SGA = StochasticGumbelAnnealing()
@@ -153,10 +164,10 @@ class EntropyModel(nn.Module):
             self.noise = noise.view(-1, 1, 1, 1).to(input.device)
             # print("A")
             input = input + self.noise
-
+        
         outputs = quantize(input, mode, mean)
 
-        if mode == "round" or mode == "UQ":
+        if mode == "round" or mode == "UQ" or mode == "estUN_outR":
             outputs = self.dequantize(outputs, mean)
         elif mode == "symbols":
             outputs = outputs.short()
@@ -265,10 +276,27 @@ class EntropyModel(nn.Module):
     def forward(self, input, condition=None):
         self._set_condition(condition)
 
-        output = self.quantize(
-            input, self.quant_mode if self.training else "round", self.mean)
+        if self.quant_mode == 'estUN_outR' and self.training:
+            output_UN = self.quantize(input, 'noise', self.mean)
+            likelihood = self._likelihood(output_UN)
+            
+            def _training_quant(x):
+                n = torch.round(x) - x
+                n = n.clone().detach()
+                return x + n
 
-        likelihood = self._likelihood(output)
+            if self.mean is not None:
+                input_res = input - self.mean
+
+                output = _training_quant(input_res) + self.mean
+            else:
+                output = _training_quant(input)
+        
+        else:
+            output = self.quantize(
+                input, self.quant_mode if self.training else "round", self.mean)
+
+            likelihood = self._likelihood(output)
 
         return output, likelihood
 
@@ -538,7 +566,7 @@ class SymmetricConditional(EntropyModel):
     """
     SCALES_MIN = 0.11
     SCALES_MAX = 256
-    SCALES_LEVELS = 64
+    SCALES_LEVELS = 256
 
     def __init__(self, use_mean=False, scale_bound=None, **kwargs):
         super(SymmetricConditional, self).__init__(**kwargs)
@@ -681,7 +709,8 @@ class SymmetricConditional(EntropyModel):
         lower = self._standardized_cumulative((values-0.5)/self.scale)
         likelihood = upper - lower
 
-        return likelihood
+        return likelihood    
+
 
 
 class GaussianConditional(SymmetricConditional):
@@ -703,6 +732,12 @@ class GaussianConditional(SymmetricConditional):
         # Using the complementary error function maximizes numerical precision.
         return 0.5 * torch.erfc(-(2 ** -0.5) * input)
 
+    def _get_score(self, input):
+        upper = self._standardized_cumulative((input+0.5)/self.scale)
+        lower = self._standardized_cumulative((input-0.5)/self.scale)
+        likelihood = upper - lower
+
+        return -likelihood.log2().sum(dim=1) 
 
 class LogisticConditional(SymmetricConditional):
     """Conditional logistic entropy model.
@@ -805,6 +840,17 @@ class MixtureModelConditional(SymmetricConditional):
 
     def _likelihood(self, input):
         return super()._likelihood(input.unsqueeze(1)).mul(self.pi).sum(1)
+
+    def forward(self, input, condition):
+        output = self.entropy_model.quantize(
+            input, self.entropy_model.quant_mode if self.training else "round")
+
+        self._set_condition(output, condition)
+
+        likelihood = self.entropy_model._likelihood(output)
+
+         
+        return output, likelihood
 
 
 class GaussianMixtureModelConditional(MixtureModelConditional):

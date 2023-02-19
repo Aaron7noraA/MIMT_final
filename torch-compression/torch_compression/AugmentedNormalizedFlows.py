@@ -458,6 +458,7 @@ class CondAugmentedNormalizedFlow(nn.Module):
     def forward(self, input, input_cond, code=None, jac=None, rev=False, last_layer=False, layer=-1, visual=False, figname='', shift_img=True):
         prefix = self.name+("" if layer < 0 or str.isdigit(self.name[-1]) else "_"+str(layer)
                             )+"_"+("rev_" if rev else "")
+
         if visual:
             debug(figname)
         if self.transpose:

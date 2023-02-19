@@ -2,11 +2,14 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 import numpy as np
+import os
 
 import torch_compression as trc
 import torch_compression.torchac.torchac as ac
 from torch_compression.modules.ConvRNN import ConvLSTM2d
 from torch_compression.modules.functional import space_to_depth, depth_to_space
+from torch_compression.modules.MIMT import MIMTEncoder, MIMTDecoder, PatchEmbed, PatchUnEmbed
+from torch_compression.util.math import lower_bound
 
 __version__ = '0.9.6'
 
@@ -124,6 +127,7 @@ class ContextModel(nn.Module):
         assert isinstance(
             entropy_model, trc.SymmetricConditional), type(entropy_model)
         self.entropy_model = entropy_model
+        self.condition_size = self.entropy_model.condition_size
         self.mask = MaskedConv2d(num_features, num_phi_features, kernel_size)
         self.padding = (kernel_size-1)//2
 
@@ -214,7 +218,24 @@ class ContextModel(nn.Module):
 
         self._set_condition(output, condition)
 
+        if not (self.training or isinstance(self.entropy_model, trc.MixtureModelConditional)):
+            output = self.entropy_model.quantize(
+                input, self.entropy_model.quant_mode if self.training else "round",
+                self.entropy_model.mean
+            )
+            
         likelihood = self.entropy_model._likelihood(output)
+
+        #if isinstance(self.entropy_model, trc.GaussianConditional):
+        #    from torch_compression.modules.entropy_models import estimate_bpp
+        #    self.entropy_model._set_condition(condition0)
+        #    output0 = self.entropy_model.quantize(
+        #        input, self.entropy_model.quant_mode if self.training else "round")
+        #    likelihood0 = self.entropy_model._likelihood(output0)
+        #    print(
+        #        estimate_bpp(likelihood, num_pixels=256*256).mean().item() <= \
+        #        estimate_bpp(likelihood0, num_pixels=256*256).mean().item()
+        #    )
 
         return output, likelihood
 
@@ -343,4 +364,468 @@ class GroupContextModel2(nn.Module):
 
         # output = depth_to_space(torch.cat(contexts, dim=1), 2)
         # likelihood = depth_to_space(torch.cat(lls, dim=1), 2)
+        return output, likelihood
+
+
+####################################################################
+
+
+class ResBlocks(nn.Sequential):
+    def __init__(self, in_channels, out_channels, kernel_size):
+        super(ResBlocks, self).__init__(
+            ResBlock(in_channels, out_channels, kernel_size),
+            ResBlock(out_channels, out_channels, kernel_size),
+            ResBlock(out_channels, out_channels, kernel_size)
+        )
+                
+    def forward(self, input):
+        return super().forward(input) + input
+
+
+class ResBlock(nn.Sequential):
+    def __init__(self, in_channels, out_channels, kernel_size):
+        super(ResBlock, self).__init__(
+            nn.Conv2d(in_channels, out_channels, kernel_size, 1, (kernel_size - 1) // 2), 
+            nn.ReLU(),
+            nn.Conv2d(out_channels, out_channels, kernel_size, 1, (kernel_size - 1) // 2), 
+        )
+    
+    def forward(self, input):
+        return super().forward(input) + input
+
+
+from torchvision.utils import make_grid
+import seaborn as sns
+import matplotlib.pyplot as plt
+import math
+
+class ScoreBasedContextModel(nn.Module):
+    def __init__(self, num_features, num_phi_features, entropy_model, n=8, num_masks=None, sep_PA=False, pred_condition_res=False):
+        super(ScoreBasedContextModel, self).__init__()
+        self.num_features = num_features
+
+        assert isinstance(
+            entropy_model, trc.SymmetricConditional), type(entropy_model)
+        self.entropy_model = entropy_model
+
+        if num_masks is None:
+            self.num_masks = num_features
+        else:
+            self.num_masks = num_masks
+
+
+        self.sep_PA = sep_PA
+        self.pred_condition_res = pred_condition_res
+        if self.sep_PA:
+            self.PA0 = nn.Sequential(
+                nn.Conv2d(num_phi_features, 640, 1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(640, 640, 1),
+                nn.LeakyReLU(inplace=True),
+                nn.Conv2d(640, num_features * self.entropy_model.condition_size, 1)
+            )
+            if self.pred_condition_res:
+                num_phi_features += num_features * self.entropy_model.condition_size
+
+        self.PA = nn.Sequential(
+            nn.Conv2d(num_phi_features + num_features + self.num_masks + 1, num_features * (self.entropy_model.condition_size + 1), 3, 1, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(num_features * (self.entropy_model.condition_size + 1), num_features * (self.entropy_model.condition_size + 1), 3, 1, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(num_features * (self.entropy_model.condition_size + 1), num_features * self.entropy_model.condition_size, 3, 1, 1)
+        )
+
+        self.score_est_net =  nn.Sequential(
+            nn.Conv2d(num_features * self.entropy_model.condition_size + self.num_masks + 1, 128, 3, 1, 1), # input: mean, scale, mask
+            ResBlocks(128, 128, 3),
+            nn.Conv2d(128, self.num_masks, 3, 1, 1),
+            nn.Sigmoid()
+        )
+        
+        self.n = n
+        self.sampler = [math.sin((i*math.pi)/(2*self.n)) for i in range(0, self.n+1)]
+
+    def sample_top_k(self, score, k, mask=None): # for each latents in a batch, select top K elements by score only from those un-masked.
+        masked_score = score.where((1-mask).bool(), torch.Tensor([-1.]).to(score.device))
+
+        # Flatten score for topk selection along a batch
+        flatten_masked_score = masked_score.flatten(1)
+        sample_at_ = torch.topk(flatten_masked_score, k, dim=1, largest=True).indices
+
+        # Mark sampled locations as 1
+        sample_at_ = torch.zeros_like(flatten_masked_score).scatter_(1, sample_at_, 1)
+
+        # Reshape back the sampling mask
+        sample_at_ = sample_at_.view(score.shape)
+        
+        return sample_at_
+
+    def get_num_samples(self, i, score):
+        num_elements = np.prod(score.shape[1:])
+        return int(self.sampler[i]*num_elements) - int(self.sampler[i-1]*num_elements)
+
+    def PA_forward(self, i, priors, ctx, mask, step_map, overall_condition):
+        if self.sep_PA:
+            if i == 1:
+                condition = self.PA0(priors)
+                condition0 = condition
+                if self.pred_condition_res:
+                    overall_condition = condition
+            else:
+                if self.pred_condition_res:
+                    _priors = priors
+                    priors = torch.cat([priors, overall_condition], dim=1)
+                
+                condition = self.PA(torch.cat([priors, ctx, mask, step_map], dim=1))
+                
+                if self.pred_condition_res:
+                    priors = _priors
+                    mu_r, sigma_r = condition.chunk(2, dim=1)
+                    mu, sigma = overall_condition.chunk(2, dim=1)
+                    mu += mu_r
+                    sigma *= F.softplus(1 + sigma_r)
+                    condition = torch.cat([mu, sigma], dim=1)
+        else:
+            condition = self.PA(torch.cat([priors, ctx, mask, step_map], dim=1))
+
+
+    def quant(self, input):
+        if self.entropy_model.quant_mode == 'estUN_outR' and self.training:
+            def _training_quant(x):
+                n = torch.round(x) - x
+                n = n.clone().detach()
+                return x + n
+
+            if self.entropy_model.mean is not None:
+                input_res = input - self.entropy_model.mean
+                output = _training_quant(input_res) + self.entropy_model.mean 
+            else:
+                output = _training_quant(input)
+        else:
+            output = self.entropy_model.quantize(
+                                input, 
+                                self.entropy_model.quant_mode if self.training else "round",
+                                None if self.training else self.entropy_model.mean
+                     )
+        return output
+
+    def forward(self, input, condition, visual=False, visual_prefix='./tmp'):
+        priors = condition # To ensure the encapsulation, use "condition" as keyword arg but it should be priors
+
+        b, c, h, w = input.shape
+
+        ctx = torch.zeros_like(input)
+        mask = torch.zeros((b, self.num_masks, h, w)).to(input.device)
+        overall_condition = torch.zeros((b, c*2, h, w)).to(input.device)
+
+        next_ctx = torch.zeros_like(input)
+        next_mask = torch.zeros((b, self.num_masks, h, w)).to(input.device)
+        next_overall_condition = torch.zeros((b, c*2, h, w)).to(input.device)
+        
+        for i in range(1, self.n+1):
+            ctx = next_ctx
+            mask = next_mask
+            overall_condition = next_overall_condition
+
+            step_map = torch.ones((b, 1, h, w)).to(input.device) * float(i) / self.n
+            condition = self.PA_forward(i, priors, ctx, mask, step_map, overall_condition)
+            
+            self.entropy_model._set_condition(condition)
+            
+            score = self.score_est_net(torch.cat([condition, mask, step_map], dim=1))
+            
+            # Sample top K scored elements
+            num_samples = self.get_num_samples(i, score)
+            sample_at_ = self.sample_top_k(score, num_samples, mask).to(input.device)
+            
+            # Update context by which samples selected
+            current_quant = self.quant(input)
+             
+            
+            if sample_at_.shape[1] != self.num_features:
+                #assert torch.sum(sample_at_ * overall_condition) < 1e-5
+                next_overall_condition = mask * overall_condition + (1 - mask) * condition
+            else:
+                _mask = torch.cat([mask]*2, dim=1)
+                next_overall_condition = _mask * overall_condition + (1 - _mask) * condition
+            
+            # Quantize input with current condition ; mask out unseen context and update
+            next_ctx = ctx + sample_at_ * current_quant
+            next_mask = mask + sample_at_
+
+            if visual:
+                def visual_feat(feat_map, save_name='./tmp/tmp.png'):
+                    heatmap = make_grid([feat_map[:, i, :, :] for i in range(feat_map.size(1))], nrow=8)[0, :, :].cpu().numpy()
+                    plt.figure()
+                    rate_heatmap = sns.heatmap(heatmap, xticklabels=False, yticklabels=False, square=True, cmap='Greys')
+                    plt.savefig(save_name, dpi=400)
+                    plt.close()
+                
+                def save_info(prefix, i, name, info):
+                    path = os.path.join(visual_prefix, name)
+                    os.makedirs(path, exist_ok=True)
+                    visual_feat(info, os.path.join(path, 'iter'+str(i)+'.png'))
+
+                save_info(visual_prefix, i, 'updated_mask', next_mask)
+                save_info(visual_prefix, i, 'current_mask', sample_at_)
+                save_info(visual_prefix, i, 'current_context', sample_at_ * current_quant)
+                save_info(visual_prefix, i, 'updated_context', next_ctx)
+                save_info(visual_prefix, i, 'current_mean', sample_at_ * condition.chunk(2, dim=1)[0])
+                save_info(visual_prefix, i, 'current_scale', sample_at_ * condition.chunk(2, dim=1)[1])
+                save_info(visual_prefix, i, 'current_mean_full', condition.chunk(2, dim=1)[0])
+                save_info(visual_prefix, i, 'current_scale_full', condition.chunk(2, dim=1)[1])
+                save_info(visual_prefix, i, 'updated_mean', next_overall_condition.chunk(2, dim=1)[0])
+                save_info(visual_prefix, i, 'updated_scale', next_overall_condition.chunk(2, dim=1)[1])
+                save_info(visual_prefix, i, 'prev_mean_current_masked', sample_at_ * overall_condition.chunk(2, dim=1)[0])
+                save_info(visual_prefix, i, 'prev_scale_current_masked', sample_at_ * overall_condition.chunk(2, dim=1)[1])
+
+        
+        assert torch.sum(next_mask.float() - torch.ones_like(next_mask)) < 1e-5
+        output = next_ctx
+        self.entropy_model._set_condition(next_overall_condition)
+
+        if self.entropy_model.quant_mode == 'estUN_outR' and self.training:
+            output_noise = self.entropy_model.quantize(input, 'noise')
+            likelihood = self.entropy_model._likelihood(output_noise)
+        else:
+            likelihood = self.entropy_model._likelihood(output)
+        
+
+        return output, likelihood
+
+
+class GetEntropyNet(nn.Module):
+    def __init__(self, entropy_model, num_masks=1):
+        super().__init__()
+        self.entropy_model = entropy_model
+
+        self.num_masks = num_masks
+    
+    def forward(self, input):
+        condition, _ = input[:, :-(self.num_masks+1), :, :], input[:, -(self.num_masks+1): , :, :]
+        mean, scale = condition.chunk(2, dim=1)
+        entropy = -self.entropy_model._likelihood(mean).log2()
+
+        if self.num_masks == 1:
+            entropy = entropy.mean(dim=1, keepdim=True)
+        return entropy
+
+
+class EntropyFirstContextModel(ScoreBasedContextModel):
+    def __init__(self, *args, **kwargs):
+        super(EntropyFirstContextModel, self).__init__(*args, **kwargs)
+        self.score_est_net = GetEntropyNet(self.entropy_model, self.num_masks) 
+
+    def sample_top_k(self, score, k, mask=None): # for each latents in a batch, select top K elements by score only from those un-masked.
+        masked_score = score.where((1-mask).bool(), torch.Tensor([np.inf]).to(score.device))
+
+        # Flatten score for topk selection along a batch
+        flatten_masked_score = masked_score.flatten(1)
+        sample_at_ = torch.topk(flatten_masked_score, k, dim=1, largest=False).indices
+
+        # Mark sampled locations as 1
+        sample_at_ = torch.zeros_like(flatten_masked_score).scatter_(1, sample_at_, 1)
+
+        # Reshape back the sampling mask
+        sample_at_ = sample_at_.view(score.shape)
+        
+        return sample_at_
+
+
+class MIMTCORE(nn.Module):
+    def __init__(self, num_features, num_phi_features, entropy_model, n=8, num_masks=None, sep_PA=False, pred_condition_res=False):
+        super(MIMTCORE, self).__init__()
+        self.num_features = num_features
+        assert isinstance(entropy_model, trc.SymmetricConditional), type(entropy_model)
+        self.entropy_model = entropy_model
+
+        if num_masks is None:
+            self.num_masks = num_features
+        else:
+            self.num_masks = num_masks
+
+        self.n = n
+        self.sampler = [math.sin((i*math.pi)/(2*self.n)) for i in range(0, self.n+1)]
+
+    def get_num_samples(self, i, score):
+        num_elements = np.prod(score.shape[1:])
+        return int(self.sampler[i]*num_elements) - int(self.sampler[i-1]*num_elements)
+
+    def sample_top_k(self, score, k, mask=None): # for each latents in a batch, select top K elements by score only from those un-masked.
+        masked_score = score.where((1-mask).bool(), torch.Tensor([np.inf]).to(score.device))
+
+        # Flatten score for topk selection along a batch
+        flatten_masked_score = masked_score.flatten(1)
+        sample_at_ = torch.topk(flatten_masked_score, k, dim=1, largest=False).indices
+
+        # Mark sampled locations as 1
+        sample_at_ = torch.zeros_like(flatten_masked_score).scatter_(1, sample_at_, 1)
+
+        # Reshape back the sampling mask
+        sample_at_ = sample_at_.view(score.shape)
+        
+        return sample_at_
+
+    def quant(self, input):
+        if self.entropy_model.quant_mode == 'estUN_outR' and self.training:
+            def _training_quant(x):
+                n = torch.round(x) - x
+                n = n.clone().detach()
+                return x + n
+
+            if self.entropy_model.mean is not None:
+                input_res = input - self.entropy_model.mean
+                output = _training_quant(input_res) + self.entropy_model.mean 
+            else:
+                output = _training_quant(input)
+        else:
+            output = self.entropy_model.quantize(
+                                input, 
+                                self.entropy_model.quant_mode if self.training else "round",
+                                None if self.training else self.entropy_model.mean
+                     )
+        return output
+
+
+class MIMTContextModel(MIMTCORE):
+    def __init__(self, num_priors=2, training_mask_ratio=1./math.e, *args, **kwargs):
+        super(MIMTContextModel, self).__init__(*args, **kwargs)
+        
+        # delattr(self, 'PA')
+        self.num_priors = num_priors
+        self.training_mask_ratio = training_mask_ratio
+        assert self.training_mask_ratio >= 0. and self.training_mask_ratio <= 1., ValueError
+
+        self.MIMT_encoder = MIMTEncoder(input_dim=self.num_features*2, l_dim=768,
+                                        num_heads=8, window_size=4,
+                                        mlp_ratio=1., 
+                                        qkv_bias=True, qk_scale=None, 
+                                        drop=0., attn_drop=0.,drop_path=0., norm_layer=nn.LayerNorm, 
+                                        use_checkpoint=False, 
+                                        shift_first=False, num_sep=2, num_joint=4)
+
+        self.MIMT_decoder = MIMTDecoder(input_dim=self.num_features, l_dim=768, 
+                                        num_heads=8, window_size=4,
+                                        mlp_ratio=1., 
+                                        qkv_bias=True, qk_scale=None, 
+                                        drop=0., attn_drop=0.,drop_path=0., norm_layer=nn.LayerNorm, 
+                                        use_checkpoint=False, 
+                                        shift_first=False, num_dec=2)
+        
+        
+    def PA_forward(self, i, priors, ctx, mask, step_map, overall_condition):
+        priors = priors.chunk(self.num_priors, dim=1)
+        
+        joint = self.MIMT_encoder(priors)
+        result = self.MIMT_decoder(joint, ctx, mask)
+
+        return result
+
+    def forward(self, input, condition, visual=False, visual_prefix='./tmp', return_mask=False):
+        if self.training:
+            b, c, h, w = input.shape
+            i = 1
+            
+            #########
+            #self.training_mask_ratio = 0.
+            #########
+            mask = (torch.rand((b, self.num_masks, h, w)).to(input.device) <= self.training_mask_ratio).float()
+
+            output = self.quant(input) 
+            ctx = output * mask
+
+            condition = self.PA_forward(i, condition, ctx, mask, None, None)
+            
+            self.entropy_model._set_condition(condition)
+            likelihood = self.entropy_model._likelihood(output)
+            
+            if return_mask:
+                return output, likelihood, 1. - mask
+            else:
+                return output, likelihood
+        else:
+            # input shape 1, 128, 68, 120
+            # conditional 1, 512, 68, 120 means and scales(hyperprior and temporalprior) # 4 times of input channels
+            # output of PA_forward(condition): 1, 256, 68, 120
+
+            B, C, H, W = input.shape
+            mask = torch.zeros((B, 1, H, W)).to(input.device)
+            final_likelihood = torch.zeros_like(input)
+            final_y_hat = torch.zeros_like(input)
+
+            for i in range(1, self.n+1):
+                # print(f"iter {i}")
+
+                ctx = final_y_hat
+                mu_sigma = self.PA_forward(i, condition, ctx, mask, None, None)
+                self.entropy_model._set_condition(mu_sigma)
+                score = -(self.entropy_model._likelihood(mu_sigma.chunk(2, dim=1)[0]).log2()).sum(dim=1) 
+
+                # Sample top K scored elements
+                num_samples = self.get_num_samples(i, score) # i=1~8
+                new_additional_mask = self.sample_top_k(score, num_samples, mask[:,0,:,:]).to(input.device).unsqueeze(1) 
+                mask += new_additional_mask
+                y_hat = self.quant(input)
+                final_likelihood += self.entropy_model._likelihood(y_hat) * new_additional_mask ###
+                final_y_hat += y_hat * new_additional_mask
+                # print(f"iteration{i}")
+
+            return final_y_hat, final_likelihood
+
+
+
+class SwinTransformerPAModel(nn.Module):
+    def __init__(self, num_features, num_priors, entropy_model):
+        super(SwinTransformerPAModel, self).__init__()
+        
+        self.num_priors = num_priors
+        self.num_features = num_features
+
+        self.MIMT_encoder = MIMTEncoder(input_dim=self.num_features*2, l_dim=768,
+                                        num_heads=8, window_size=4,
+                                        mlp_ratio=1., 
+                                        qkv_bias=True, qk_scale=None, 
+                                        drop=0., attn_drop=0.,drop_path=0., norm_layer=nn.LayerNorm, 
+                                        use_checkpoint=False, 
+                                        shift_first=False, num_sep=2, num_joint=4)
+
+        self.patch_unembed = PatchUnEmbed()
+        self.entropy_model = entropy_model
+
+        self.conv = nn.Conv2d(in_channels=768*self.num_priors, out_channels=self.num_features*2, kernel_size=1, stride=1, padding=0)
+
+
+    def quant(self, input):
+        if self.entropy_model.quant_mode == 'estUN_outR' and self.training:
+            def _training_quant(x):
+                n = torch.round(x) - x
+                n = n.clone().detach()
+                return x + n
+
+            if self.entropy_model.mean is not None:
+                input_res = input - self.entropy_model.mean
+                output = _training_quant(input_res) + self.entropy_model.mean 
+            else:
+                output = _training_quant(input)
+        else:
+            output = self.entropy_model.quantize(
+                                input, 
+                                self.entropy_model.quant_mode if self.training else "round",
+                                None if self.training else self.entropy_model.mean
+                     )
+        return output
+
+
+    def forward(self, input, condition, visual=False, visual_prefix='./tmp'):
+        priors = condition.chunk(self.num_priors, dim=1)
+        
+        encoded = self.MIMT_encoder(priors)
+        encoded = [self.patch_unembed(_encoded, input.shape[2:]) for _encoded in encoded]
+        encoded = torch.cat(encoded, dim=1)
+        condition = self.conv(encoded)
+        
+        self.entropy_model._set_condition(condition)
+        output = self.quant(input)
+        likelihood = self.entropy_model._likelihood(output)
+        
         return output, likelihood

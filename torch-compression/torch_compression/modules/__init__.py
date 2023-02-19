@@ -8,6 +8,8 @@ from .entropy_models import *
 from .generalizedivisivenorm import (GeneralizedDivisiveNorm,
                                      generalized_divisive_norm)
 from .signalconv import SignalConv2d, SignalConvTranspose2d
+from .mirnet_v2_arch import MIRNet_v2
+from .restormer_arch import Restormer
 
 __CONV_TYPES__ = {'Signal': SignalConv2d,
                   'Standard': nn.Conv2d}

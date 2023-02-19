@@ -830,7 +830,7 @@ class Pframe(CompressesModel):
                 coding_frame = batch[:, frame_idx]
 
                 # reconstruced frame will be next ref_frame
-                if False and TO_VISUALIZE:
+                if TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
                                 exist_ok=True)
                     rec_frame, likelihoods, m_info, mc_frame, _, _, BDQ, mc_hat\

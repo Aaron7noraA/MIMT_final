@@ -109,7 +109,6 @@ class ConditionalLayer(nn.Module):
         output = self.m(*input)
 
         if self.condition_size:
-            # print('cond')
             if condition is None:
                 condition = self.condition
 

@@ -1,0 +1,18 @@
+---
+model_architecture: CondANFCoderTCMNoGDN
+
+model_params:
+    num_filters: 64
+    num_features: 96
+    num_hyperpriors: 64
+    hyper_filters: 64
+    in_channels: 3
+    kernel_size: 3
+    num_layers: 2
+    init_code: gaussian
+    use_mean: True
+    use_context: False
+    condition: Gaussian
+    quant_mode: RUN
+    output_nought: True
+    num_condition_features: [64, 64, 64]

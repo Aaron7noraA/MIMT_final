@@ -39,12 +39,12 @@ plot_bitalloc = PlotHeatMap("RB").cuda()
 
 phase = {'trainMV': 10, 
          'trainMC': 10,
-         'trainRes_2frames_RecOnly': 15,
-         'trainRes_2frames': 20, 
-         'trainAll_2frames': 25, 
-         'trainAll_fullgop': 30, 
-         'trainAll_RNN_1': 33, 
-         'trainAll_RNN_2': 35,
+         'trainRes_2frames_RecOnly': 13,
+         'trainRes_2frames': 16, 
+         'trainAll_2frames': 20, 
+         'trainAll_fullgop': 25, 
+         'trainAll_RNN_1': 28, 
+         'trainAll_RNN_2': 30,
          'train_aux': 100}
 
 
@@ -657,14 +657,13 @@ class Pframe(CompressesModel):
 
         for frame_idx in range(gop_size):
             ref_frame = ref_frame.clamp(0, 1)
-            TO_VISUALIZE = frame_id_start == 1 and frame_idx < 8 and seq_name in ['Beauty', 'Kimono1', 'HoneyBee', 'Jockey']
-            if not TO_VISUALIZE:
-                continue
+            TO_VISUALIZE = False and frame_id_start == 1 and frame_idx < 8 and seq_name in ['Beauty', 'Kimono1', 'HoneyBee', 'Jockey']
+
             if frame_idx != 0:
                 coding_frame = batch[:, frame_idx]
 
                 # reconstruced frame will be next ref_frame
-                if False and TO_VISUALIZE:
+                if TO_VISUALIZE:
                     os.makedirs(os.path.join(self.args.save_dir, 'visualize_ANFIC', f'batch_{batch_idx}'),
                                 exist_ok=True)
                     if frame_idx == 1:
@@ -1350,7 +1349,7 @@ if __name__ == '__main__':
         #summary(model.CondMotion)
         #summary(model.Residual)
         #summary(model)
-
+    
     if args.test:
         trainer.test(model)
     else:
